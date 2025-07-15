@@ -5,7 +5,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart' as getx;
 import 'package:flutter/material.dart';
-import '../generated/l10n.dart';
 
 class DownloadManager {
   static final Dio _dio = Dio();
@@ -36,11 +35,11 @@ class DownloadManager {
           getx.Get.showSnackbar(getx.GetSnackBar(
             message: '需要存储权限才能下载文件，请在设置中手动授权',
             duration: const Duration(seconds: 5),
-            mainButton: getx.TextButton(
+            mainButton: TextButton(
               onPressed: () {
                 openAppSettings();
               },
-              child: Text('去设置'),
+              child: const Text('去设置'),
             ),
           ));
           return false;
@@ -51,9 +50,9 @@ class DownloadManager {
       Directory? downloadDir = await _getOpenListDownloadDirectory();
 
       if (downloadDir == null) {
-        getx.Get.showSnackbar(getx.GetSnackBar(
+        getx.Get.showSnackbar(const getx.GetSnackBar(
           message: '无法获取下载目录',
-          duration: const Duration(seconds: 3),
+          duration: Duration(seconds: 3),
         ));
         return false;
       }
@@ -95,11 +94,11 @@ class DownloadManager {
       getx.Get.showSnackbar(getx.GetSnackBar(
         message: '下载完成: $finalFilename',
         duration: const Duration(seconds: 3),
-        mainButton: getx.TextButton(
+        mainButton: TextButton(
           onPressed: () {
             _openFile(filePath);
           },
-          child: Text('打开'),
+          child: const Text('打开'),
         ),
       ));
 
@@ -228,12 +227,12 @@ class DownloadManager {
         getx.Get.showSnackbar(getx.GetSnackBar(
           message: '文件已保存到应用文档目录',
           duration: const Duration(seconds: 3),
-          mainButton: getx.TextButton(
+          mainButton: TextButton(
             onPressed: () {
               // 可以在这里添加分享文件的功能
               _shareFile(filePath);
             },
-            child: Text('分享'),
+            child: const Text('分享'),
           ),
         ));
       } else {
@@ -255,12 +254,12 @@ class DownloadManager {
     // 暂时显示文件路径
     getx.Get.dialog(
       AlertDialog(
-        title: Text('文件位置'),
+        title: const Text('文件位置'),
         content: SelectableText(filePath),
         actions: [
-          getx.TextButton(
+          TextButton(
             onPressed: () => getx.Get.back(),
-            child: Text('确定'),
+            child: const Text('确定'),
           ),
         ],
       ),
@@ -360,12 +359,12 @@ class DownloadManager {
         init: DownloadController(),
         builder: (controller) {
           return AlertDialog(
-            title: Text('下载中...'),
+            title: const Text('下载中...'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 LinearProgressIndicator(value: controller.progress),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text('${(controller.progress * 100).toStringAsFixed(1)}%'),
                 Text(controller.statusText),
               ],
@@ -376,7 +375,7 @@ class DownloadManager {
                   controller.cancelDownload();
                   getx.Get.back();
                 },
-                child: Text('取消'),
+                child: const Text('取消'),
               ),
             ],
           );

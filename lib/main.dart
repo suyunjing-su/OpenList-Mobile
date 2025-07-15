@@ -1,7 +1,4 @@
-import 'dart:developer';
-
 import 'package:openlist_flutter/generated/l10n.dart';
-import 'package:openlist_flutter/generated_api.dart';
 import 'package:openlist_flutter/pages/openlist/openlist.dart';
 import 'package:openlist_flutter/pages/app_update_dialog.dart';
 import 'package:openlist_flutter/pages/settings/settings.dart';
