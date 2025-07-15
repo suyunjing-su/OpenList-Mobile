@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../utils/download_manager.dart';
-import '../generated/l10n.dart';
 
 /// 下载文件管理页面
 class DownloadManagerPage extends StatefulWidget {

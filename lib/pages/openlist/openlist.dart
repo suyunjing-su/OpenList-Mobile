@@ -1,17 +1,13 @@
-import 'dart:developer';
-import 'dart:io';
-
 import 'package:openlist_flutter/generated_api.dart';
 import 'package:openlist_flutter/pages/openlist/about_dialog.dart';
 import 'package:openlist_flutter/pages/openlist/pwd_edit_dialog.dart';
 import 'package:openlist_flutter/pages/app_update_dialog.dart';
+import 'package:openlist_flutter/pages/download_manager_page.dart';
 import 'package:openlist_flutter/widgets/switch_floating_action_button.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../generated/l10n.dart';
-import '../../utils/intent_utils.dart';
 import 'log_list_view.dart';
 
 class OpenListScreen extends StatelessWidget {
@@ -54,6 +50,19 @@ class OpenListScreen extends StatelessWidget {
                   return [
                     PopupMenuItem(
                       value: 1,
+                      onTap: () {
+                        Get.to(() => const DownloadManagerPage());
+                      },
+                      child: const Row(
+                        children: [
+                          Icon(Icons.download),
+                          SizedBox(width: 8),
+                          Text('下载管理'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 2,
                       onTap: () async {
                         AppUpdateDialog.checkUpdateAndShowDialog(context, (b) {
                           if (!b) {
@@ -66,7 +75,7 @@ class OpenListScreen extends StatelessWidget {
                       child: Text(S.of(context).checkForUpdates),
                     ),
                     PopupMenuItem(
-                      value: 2,
+                      value: 3,
                       onTap: () {
                         showDialog(context: context, builder: ((context){
                           return const AppAboutDialog();
