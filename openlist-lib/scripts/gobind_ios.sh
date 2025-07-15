@@ -1,6 +1,34 @@
 #!/bin/bash
 
-cd ../openlistlib || exit
+# First check if we're in the right place
+echo "Starting iOS build from: $(pwd)"
+
+# Try to find the correct directory with go.mod
+if [ -f ../go.mod ]; then
+    echo "Found go.mod in parent directory, using that"
+    cd ../ || exit
+elif [ -f ../openlist/go.mod ]; then
+    echo "Found go.mod in openlist directory"
+    cd ../openlist/ || exit
+elif [ -f ../openlistlib/go.mod ]; then
+    echo "Found go.mod in openlistlib directory"
+    cd ../openlistlib/ || exit
+else
+    echo "Searching for go.mod in parent directories..."
+    cd ../ || exit
+    find . -name "go.mod" -type f | head -5
+    
+    # Try the most likely location
+    if [ -f go.mod ]; then
+        echo "Using go.mod in current directory: $(pwd)"
+    else
+        echo "Error: Cannot find go.mod file"
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        exit 1
+    fi
+fi
 
 echo "Current directory: $(pwd)"
 echo "Building OpenList for iOS..."
@@ -16,9 +44,9 @@ echo "Go version: $(go version)"
 echo "GOPATH: $GOPATH"
 echo "GOROOT: $GOROOT"
 
-# Check if go.mod exists
+# Verify go.mod exists
 if [ ! -f go.mod ]; then
-    echo "Error: go.mod not found in $(pwd)"
+    echo "Error: go.mod still not found in $(pwd)"
     echo "Directory contents:"
     ls -la
     exit 1
