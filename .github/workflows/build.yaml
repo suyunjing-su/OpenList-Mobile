@@ -130,8 +130,8 @@ jobs:
           chmod +x *.sh
           echo "Initializing OpenList..."
           ./init_openlist.sh
-          echo "Initializing Web assets..."
-          ./init_web.sh
+          echo "Initializing Web assets for iOS..."
+          ./init_web_ios.sh
 
       - name: Verify Go Installation
         run: |

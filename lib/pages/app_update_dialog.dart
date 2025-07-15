@@ -68,8 +68,8 @@ class AppUpdateDialog extends StatelessWidget {
           child: Text('直接下载APK'),
           onPressed: () async {
             Navigator.pop(context);
-            // 使用内置下载管理器直接下载APK
-            await DownloadManager.downloadFileWithProgress(
+            // 使用内置下载管理器后台下载APK
+            DownloadManager.downloadFileInBackground(
               url: apkUrl,
               filename: 'OpenList_v$version.apk',
             );

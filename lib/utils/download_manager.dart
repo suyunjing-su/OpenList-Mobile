@@ -346,20 +346,52 @@ class DownloadManager {
     }
   }
 
-  /// 带进度条的下载
+  /// 带进度条的下载（后台下载，不阻塞UI）
   static Future<bool> downloadFileWithProgress({
     required String url,
     String? filename,
   }) async {
-    bool downloadSuccess = false;
+    // 创建下载控制器
+    final controller = DownloadController();
+    getx.Get.put(controller, tag: url); // 使用URL作为tag来区分不同的下载任务
     
-    // 显示下载进度对话框
+    // 显示开始下载的简短提示
+    getx.Get.showSnackbar(getx.GetSnackBar(
+      message: '开始下载: ${filename ?? '文件'}',
+      duration: const Duration(seconds: 2),
+      mainButton: getx.TextButton(
+        onPressed: () {
+          _showDownloadProgressDialog(controller, url);
+        },
+        child: const Text('查看进度'),
+      ),
+    ));
+    
+    // 后台执行下载
+    bool downloadSuccess = await downloadFile(
+      url: url,
+      filename: filename,
+      onProgress: (received, total) {
+        if (total > 0) {
+          controller.updateProgress(received / total, received, total);
+        }
+      },
+    );
+    
+    // 下载完成后清理控制器
+    getx.Get.delete<DownloadController>(tag: url);
+    
+    return downloadSuccess;
+  }
+
+  /// 显示下载进度对话框（可选）
+  static void _showDownloadProgressDialog(DownloadController controller, String url) {
     getx.Get.dialog(
       getx.GetBuilder<DownloadController>(
-        init: DownloadController(),
+        init: controller,
         builder: (controller) {
           return AlertDialog(
-            title: const Text('下载中...'),
+            title: const Text('下载进度'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -372,32 +404,42 @@ class DownloadManager {
             actions: [
               TextButton(
                 onPressed: () {
+                  getx.Get.back();
+                },
+                child: const Text('后台下载'),
+              ),
+              TextButton(
+                onPressed: () {
                   controller.cancelDownload();
                   getx.Get.back();
                 },
-                child: const Text('取消'),
+                child: const Text('取消下载'),
               ),
             ],
           );
         },
       ),
-      barrierDismissible: false,
+      barrierDismissible: true, // 允许点击外部关闭
     );
+  }
 
-    final controller = getx.Get.find<DownloadController>();
+  /// 简单的后台下载（推荐使用）
+  static Future<bool> downloadFileInBackground({
+    required String url,
+    String? filename,
+  }) async {
+    // 显示开始下载提示
+    getx.Get.showSnackbar(getx.GetSnackBar(
+      message: '开始下载: ${filename ?? _getFilenameFromUrl(url)}',
+      duration: const Duration(seconds: 2),
+      backgroundColor: Colors.green,
+    ));
     
-    downloadSuccess = await downloadFile(
+    // 后台执行下载
+    return await downloadFile(
       url: url,
       filename: filename,
-      onProgress: (received, total) {
-        if (total > 0) {
-          controller.updateProgress(received / total, received, total);
-        }
-      },
     );
-
-    getx.Get.back(); // 关闭进度对话框
-    return downloadSuccess;
   }
 }
 

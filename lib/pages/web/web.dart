@@ -150,8 +150,8 @@ class WebScreenState extends State<WebScreen> {
                       TextButton(
                         onPressed: () async {
                           Get.closeCurrentSnackbar();
-                          // 使用内置下载管理器直接下载
-                          await DownloadManager.downloadFileWithProgress(
+                          // 使用内置下载管理器后台下载
+                          DownloadManager.downloadFileInBackground(
                             url: url.url.toString(),
                             filename: url.suggestedFilename,
                           );
