@@ -359,7 +359,7 @@ class DownloadManager {
     getx.Get.showSnackbar(getx.GetSnackBar(
       message: '开始下载: ${filename ?? '文件'}',
       duration: const Duration(seconds: 2),
-      mainButton: getx.TextButton(
+      mainButton: TextButton(
         onPressed: () {
           _showDownloadProgressDialog(controller, url);
         },

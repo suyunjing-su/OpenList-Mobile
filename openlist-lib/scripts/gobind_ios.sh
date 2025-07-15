@@ -44,6 +44,69 @@ echo "Go version: $(go version)"
 echo "GOPATH: $GOPATH"
 echo "GOROOT: $GOROOT"
 
+# Check and fix gomobile bind dependencies for iOS
+echo "Checking gomobile bind dependencies..."
+
+# Check if gobind command is available
+if ! command -v gobind &> /dev/null; then
+    echo "gobind command not found, installing..."
+    go install golang.org/x/mobile/cmd/gobind@latest || {
+        echo "Failed to install gobind"
+        exit 1
+    }
+fi
+
+# Go to the module root to install dependencies
+if [ -f ../go.mod ]; then
+    echo "Installing dependencies in module root..."
+    cd ..
+    
+    # Install bind packages in the module context
+    go get golang.org/x/mobile/bind@latest || {
+        echo "Failed to install golang.org/x/mobile/bind"
+        exit 1
+    }
+    
+    go get golang.org/x/mobile/bind/objc@latest || {
+        echo "Failed to install golang.org/x/mobile/bind/objc"
+        exit 1
+    }
+    
+    # Ensure all dependencies are downloaded
+    go mod download
+    go mod tidy
+    
+    cd openlistlib
+else
+    echo "No go.mod found, installing packages globally..."
+    go get golang.org/x/mobile/bind@latest || {
+        echo "Failed to install golang.org/x/mobile/bind"
+        exit 1
+    }
+    
+    go get golang.org/x/mobile/bind/objc@latest || {
+        echo "Failed to install golang.org/x/mobile/bind/objc"
+        exit 1
+    }
+fi
+
+# Ensure gomobile is properly initialized for iOS
+echo "Re-initializing gomobile for iOS..."
+gomobile init || {
+    echo "Failed to initialize gomobile"
+    exit 1
+}
+
+# Verify bind packages are available
+echo "Verifying bind packages..."
+if ! go list golang.org/x/mobile/bind >/dev/null 2>&1; then
+    echo "Warning: golang.org/x/mobile/bind still not available"
+fi
+
+if ! go list golang.org/x/mobile/bind/objc >/dev/null 2>&1; then
+    echo "Warning: golang.org/x/mobile/bind/objc still not available"
+fi
+
 # Check if this directory has Go files suitable for binding
 if [ ! -f *.go ]; then
     echo "Warning: No Go files found in current directory"
