@@ -9,26 +9,58 @@ mkdir -p dist
 # First, try to get the latest release info with better error handling
 echo "Fetching latest release information..."
 
-# Function to fetch release info with retries
+# Function to fetch release info with retries and proxy fallback
 fetch_release_info() {
     local attempt=1
     local max_attempts=3
+    local api_url="https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest"
+    local proxy_url="https://ghproxy.lvedong.eu.org/https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest"
     
+    # First try direct API
+    echo "Trying direct GitHub API..."
     while [ $attempt -le $max_attempts ]; do
-        echo "Attempt $attempt/$max_attempts: Fetching release info..."
+        echo "Direct API attempt $attempt/$max_attempts..."
         
         RELEASE_INFO=$(curl -fsSL --max-time 10 \
             -H "Accept: application/vnd.github.v3+json" \
             -H "User-Agent: OpenList-iOS-Builder" \
-            "https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest" 2>/dev/null)
+            "$api_url" 2>/dev/null)
         
         local curl_exit_code=$?
         
         if [ $curl_exit_code -eq 0 ] && [ -n "$RELEASE_INFO" ]; then
-            echo "Successfully fetched release info on attempt $attempt"
+            echo "Successfully fetched release info via direct API on attempt $attempt"
             return 0
         else
-            echo "Attempt $attempt failed (exit code: $curl_exit_code)"
+            echo "Direct API attempt $attempt failed (exit code: $curl_exit_code)"
+            if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting 3 seconds before retry..."
+                sleep 3
+            fi
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Direct API failed after $max_attempts attempts, trying proxy..."
+    
+    # Try proxy API
+    attempt=1
+    while [ $attempt -le $max_attempts ]; do
+        echo "Proxy API attempt $attempt/$max_attempts..."
+        
+        RELEASE_INFO=$(curl -fsSL --max-time 15 \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "User-Agent: OpenList-iOS-Builder" \
+            "$proxy_url" 2>/dev/null)
+        
+        local curl_exit_code=$?
+        
+        if [ $curl_exit_code -eq 0 ] && [ -n "$RELEASE_INFO" ]; then
+            echo "Successfully fetched release info via proxy on attempt $attempt"
+            return 0
+        else
+            echo "Proxy attempt $attempt failed (exit code: $curl_exit_code)"
             if [ $attempt -lt $max_attempts ]; then
                 echo "Waiting 5 seconds before retry..."
                 sleep 5
@@ -38,7 +70,7 @@ fetch_release_info() {
         attempt=$((attempt + 1))
     done
     
-    echo "Failed to fetch release info after $max_attempts attempts"
+    echo "Failed to fetch release info via both direct API and proxy"
     return 1
 }
 
@@ -80,23 +112,53 @@ fi
 
 echo "Download URL: $DOWNLOAD_URL"
 
-# Function to download file with retries
+# Function to download file with retries and proxy fallback
 download_file() {
     local url="$1"
     local output="$2"
     local attempt=1
     local max_attempts=3
     
+    # First try direct download
+    echo "Trying direct download..."
     while [ $attempt -le $max_attempts ]; do
-        echo "Download attempt $attempt/$max_attempts..."
+        echo "Direct download attempt $attempt/$max_attempts..."
         
         # Try download
         if curl -fsSL --max-time 30 -o "$output" "$url"; then
-            echo "Download successful on attempt $attempt"
+            echo "Direct download successful on attempt $attempt"
             return 0
         else
             local curl_exit_code=$?
-            echo "Download attempt $attempt failed (exit code: $curl_exit_code)"
+            echo "Direct download attempt $attempt failed (exit code: $curl_exit_code)"
+            
+            # Remove partial file if it exists
+            rm -f "$output"
+            
+            if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting 3 seconds before retry..."
+                sleep 3
+            fi
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    # Try proxy download if direct failed
+    echo "Direct download failed, trying proxy download..."
+    local proxy_url="https://ghproxy.lvedong.eu.org/$url"
+    attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "Proxy download attempt $attempt/$max_attempts..."
+        
+        # Try proxy download
+        if curl -fsSL --max-time 45 -o "$output" "$proxy_url"; then
+            echo "Proxy download successful on attempt $attempt"
+            return 0
+        else
+            local curl_exit_code=$?
+            echo "Proxy download attempt $attempt failed (exit code: $curl_exit_code)"
             
             # Remove partial file if it exists
             rm -f "$output"
@@ -110,7 +172,7 @@ download_file() {
         attempt=$((attempt + 1))
     done
     
-    echo "Failed to download after $max_attempts attempts"
+    echo "Failed to download via both direct and proxy methods"
     return 1
 }
 
