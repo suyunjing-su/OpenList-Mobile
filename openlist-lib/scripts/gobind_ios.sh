@@ -44,68 +44,71 @@ echo "Go version: $(go version)"
 echo "GOPATH: $GOPATH"
 echo "GOROOT: $GOROOT"
 
-# Check and fix gomobile bind dependencies for iOS
-echo "Checking gomobile bind dependencies..."
+# Fix gomobile bind dependencies for iOS - aggressive approach
+echo "Fixing gomobile bind dependencies for iOS..."
 
-# Check if gobind command is available
-if ! command -v gobind &> /dev/null; then
-    echo "gobind command not found, installing..."
-    go install golang.org/x/mobile/cmd/gobind@latest || {
-        echo "Failed to install gobind"
-        exit 1
-    }
-fi
+# Set up Go environment explicitly
+export GOPATH="${HOME}/go"
+export PATH="${GOPATH}/bin:${PATH}"
+echo "GOPATH set to: $GOPATH"
+echo "PATH updated to include: ${GOPATH}/bin"
 
-# Go to the module root to install dependencies
-if [ -f ../go.mod ]; then
-    echo "Installing dependencies in module root..."
-    cd ..
-    
-    # Install bind packages in the module context
-    go get golang.org/x/mobile/bind@latest || {
-        echo "Failed to install golang.org/x/mobile/bind"
-        exit 1
-    }
-    
-    go get golang.org/x/mobile/bind/objc@latest || {
-        echo "Failed to install golang.org/x/mobile/bind/objc"
-        exit 1
-    }
-    
-    # Ensure all dependencies are downloaded
-    go mod download
-    go mod tidy
-    
-    cd openlistlib
-else
-    echo "No go.mod found, installing packages globally..."
-    go get golang.org/x/mobile/bind@latest || {
-        echo "Failed to install golang.org/x/mobile/bind"
-        exit 1
-    }
-    
-    go get golang.org/x/mobile/bind/objc@latest || {
-        echo "Failed to install golang.org/x/mobile/bind/objc"
-        exit 1
-    }
-fi
+# Clean everything first
+echo "Cleaning Go caches and gomobile..."
+go clean -cache
+go clean -modcache || true
+rm -rf "${GOPATH}/pkg/mod/golang.org/x/mobile*" || true
 
-# Ensure gomobile is properly initialized for iOS
-echo "Re-initializing gomobile for iOS..."
+# Save current directory
+CURRENT_DIR=$(pwd)
+
+# Create a clean temporary workspace
+TEMP_DIR=$(mktemp -d)
+echo "Using temporary directory: $TEMP_DIR"
+cd "$TEMP_DIR"
+
+# Set up a clean module environment
+echo "Setting up clean module environment..."
+go mod init temp-gomobile-fix
+
+# Force install all mobile-related packages
+echo "Force installing all golang.org/x/mobile packages..."
+go get -u golang.org/x/mobile@latest
+go get -u golang.org/x/mobile/cmd/gomobile@latest
+go get -u golang.org/x/mobile/cmd/gobind@latest
+go get -u golang.org/x/mobile/bind@latest
+go get -u golang.org/x/mobile/bind/objc@latest
+
+# Install tools to GOPATH/bin
+echo "Installing tools to GOPATH/bin..."
+go install golang.org/x/mobile/cmd/gomobile@latest
+go install golang.org/x/mobile/cmd/gobind@latest
+
+# Return to original directory
+cd "$CURRENT_DIR"
+rm -rf "$TEMP_DIR"
+
+# Verify tools are in PATH
+echo "Verifying tool installation..."
+echo "gomobile path: $(which gomobile 2>/dev/null || echo 'NOT FOUND')"
+echo "gobind path: $(which gobind 2>/dev/null || echo 'NOT FOUND')"
+
+# Clean and reinitialize gomobile
+echo "Reinitializing gomobile..."
+gomobile clean 2>/dev/null || true
 gomobile init || {
     echo "Failed to initialize gomobile"
-    exit 1
+    echo "Trying alternative initialization..."
+    
+    # Try to manually set up gomobile
+    mkdir -p "${GOPATH}/pkg/gomobile"
+    gomobile init -ndk="" || {
+        echo "Alternative initialization also failed"
+        exit 1
+    }
 }
 
-# Verify bind packages are available
-echo "Verifying bind packages..."
-if ! go list golang.org/x/mobile/bind >/dev/null 2>&1; then
-    echo "Warning: golang.org/x/mobile/bind still not available"
-fi
-
-if ! go list golang.org/x/mobile/bind/objc >/dev/null 2>&1; then
-    echo "Warning: golang.org/x/mobile/bind/objc still not available"
-fi
+echo "Gomobile setup completed"
 
 # Check if this directory has Go files suitable for binding
 if [ ! -f *.go ]; then

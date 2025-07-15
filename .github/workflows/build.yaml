@@ -142,8 +142,12 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/openlist-lib/scripts
           chmod +x *.sh
-          echo "Initializing gomobile..."
+          echo "Initializing gomobile for iOS..."
           ./init_gomobile.sh
+          echo "Checking Go mobile installation..."
+          go list -m golang.org/x/mobile 2>/dev/null || echo "mobile module not found"
+          which gomobile || echo "gomobile not in PATH"
+          which gobind || echo "gobind not in PATH"
           echo "Checking openlistlib directory..."
           ls -la ../openlistlib/ || echo "openlistlib directory not found"
           echo "Building iOS framework..."
