@@ -21,7 +21,9 @@ import com.github.openlistteam.openlistflutter.utils.AndroidUtils.registerReceiv
 import com.github.openlistteam.openlistflutter.utils.ClipboardUtils
 import com.github.openlistteam.openlistflutter.utils.ToastUtils.toast
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import splitties.systemservices.powerManager
 
 class OpenListService : Service(), OpenList.Listener {
@@ -98,6 +100,9 @@ class OpenListService : Service(), OpenList.Listener {
     override fun onDestroy() {
         super.onDestroy()
 
+        // 取消所有协程作业
+        mScope.coroutineContext[Job]?.cancel()
+
         mWakeLock?.release()
         mWakeLock = null
 
@@ -118,12 +123,30 @@ class OpenListService : Service(), OpenList.Listener {
 
     private fun startOrShutdown() {
         if (isRunning) {
-            OpenList.shutdown()
+            // 关闭操作也放到子线程中执行，避免阻塞主线程
+            mScope.launch(Dispatchers.IO) {
+                OpenList.shutdown()
+            }
         } else {
             toast(getString(R.string.starting))
             isRunning = true
-            OpenList.startup()
-            notifyStatusChanged()
+            // 在子线程中启动OpenList服务，避免阻塞主线程
+            mScope.launch(Dispatchers.IO) {
+                try {
+                    OpenList.startup()
+                    // 启动完成后在主线程中更新状态
+                    launch(Dispatchers.Main) {
+                        notifyStatusChanged()
+                    }
+                } catch (e: Exception) {
+                    // 启动失败时重置状态
+                    isRunning = false
+                    launch(Dispatchers.Main) {
+                        toast("启动失败: ${e.message}")
+                        notifyStatusChanged()
+                    }
+                }
+            }
         }
     }
 
