@@ -1,7 +1,7 @@
 #!/bin/bash
 
 GIT_REPO="https://github.com/OpenListTeam/OpenList.git"
-TAG_NAME=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags $GIT_REPO | tail --lines=1 | cut --delimiter='/' --fields=3)
+TAG_NAME=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags $GIT_REPO | tail -n 1 | cut -d'/' -f3)
 
 echo "OpenList - ${TAG_NAME}"
 rm -rf ./src

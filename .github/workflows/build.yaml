@@ -87,7 +87,7 @@ jobs:
 
       - name: Init APP Version Name
         run: |
-          echo "ver_name=$(grep -m 1 'versionName' ${{ env.output }}/output-metadata.json | cut -d\" -f4)" >> $GITHUB_ENV
+          echo "ver_name=$(grep -m 1 'versionName' ${{ env.output }}/output-metadata.json | cut -d'"' -f4)" >> $GITHUB_ENV
 
       - name: Upload App To Artifact arm64-v8a
         if: success () || failure ()
@@ -119,23 +119,34 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download OpenList Source Code
-        run: |
-          cd $GITHUB_WORKSPACE/openlist-lib/scripts
-          chmod +x *.sh
-          ./init_openlist.sh
-          ./init_web.sh
-
       - uses: actions/setup-go@v4
         with:
           go-version: 1.22
           cache-dependency-path: ${{ github.workspace }}/openlist-lib/openlist/go.sum
 
+      - name: Download OpenList Source Code
+        run: |
+          cd $GITHUB_WORKSPACE/openlist-lib/scripts
+          chmod +x *.sh
+          echo "Initializing OpenList..."
+          ./init_openlist.sh
+          echo "Initializing Web assets..."
+          ./init_web.sh
+
+      - name: Verify Go Installation
+        run: |
+          which go
+          go version
+          echo "GOPATH: $GOPATH"
+          echo "GOROOT: $GOROOT"
+
       - name: Build OpenList for iOS
         run: |
           cd $GITHUB_WORKSPACE/openlist-lib/scripts
           chmod +x *.sh
+          echo "Initializing gomobile..."
           ./init_gomobile.sh
+          echo "Building iOS framework..."
           ./gobind_ios.sh
 
       - name: Upload iOS Framework
