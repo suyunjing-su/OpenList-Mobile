@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../generated/l10n.dart';
 import '../utils/update_checker.dart';
 import '../utils/intent_utils.dart';
+import '../utils/download_manager.dart';
 
 class AppUpdateDialog extends StatelessWidget {
   final String content;
@@ -61,6 +62,17 @@ class AppUpdateDialog extends StatelessWidget {
             Navigator.pop(context);
             IntentUtils.getUrlIntent(htmlUrl)
                 .launchChooser(S.of(context).releasePage);
+          },
+        ),
+        TextButton(
+          child: Text('直接下载APK'),
+          onPressed: () async {
+            Navigator.pop(context);
+            // 使用内置下载管理器直接下载APK
+            await DownloadManager.downloadFileWithProgress(
+              url: apkUrl,
+              filename: 'OpenList_v$version.apk',
+            );
           },
         ),
         TextButton(

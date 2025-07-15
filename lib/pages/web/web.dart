@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:openlist_flutter/contant/native_bridge.dart';
 import 'package:openlist_flutter/generated_api.dart';
 import 'package:openlist_flutter/utils/intent_utils.dart';
+import 'package:openlist_flutter/utils/download_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -144,8 +145,19 @@ class WebScreenState extends State<WebScreen> {
                     message: url.suggestedFilename ??
                         url.contentDisposition ??
                         url.toString(),
-                    duration: const Duration(seconds: 3),
+                    duration: const Duration(seconds: 5),
                     mainButton: Column(children: [
+                      TextButton(
+                        onPressed: () async {
+                          Get.closeCurrentSnackbar();
+                          // 使用内置下载管理器直接下载
+                          await DownloadManager.downloadFileWithProgress(
+                            url: url.url.toString(),
+                            filename: url.suggestedFilename,
+                          );
+                        },
+                        child: Text('直接下载'),
+                      ),
                       TextButton(
                         onPressed: () {
                           IntentUtils.getUrlIntent(url.url.toString())
@@ -157,7 +169,7 @@ class WebScreenState extends State<WebScreen> {
                         onPressed: () {
                           IntentUtils.getUrlIntent(url.url.toString()).launch();
                         },
-                        child: Text(S.of(context).download),
+                        child: Text('浏览器下载'),
                       ),
                     ]),
                     onTap: (_) {

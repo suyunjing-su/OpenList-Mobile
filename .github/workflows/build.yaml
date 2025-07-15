@@ -109,3 +109,64 @@ jobs:
         with:
           name: "OpenListFlutter-v${{ env.ver_name }}_x86_64"
           path: "${{ env.output }}/*64.apk"
+
+  ios:
+    runs-on: macos-latest
+    env:
+      output: "${{ github.workspace }}/build/ios/ipa"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download OpenList Source Code
+        run: |
+          cd $GITHUB_WORKSPACE/openlist-lib/scripts
+          chmod +x *.sh
+          ./init_openlist.sh
+          ./init_web.sh
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: 1.22
+          cache-dependency-path: ${{ github.workspace }}/openlist-lib/openlist/go.sum
+
+      - name: Build OpenList for iOS
+        run: |
+          cd $GITHUB_WORKSPACE/openlist-lib/scripts
+          chmod +x *.sh
+          ./init_gomobile.sh
+          ./gobind_ios.sh
+
+      - name: Upload iOS Framework
+        uses: actions/upload-artifact@v4
+        with:
+          name: "OpenList-iOS"
+          path: "${{ github.workspace }}/ios/Frameworks/*.xcframework"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+
+      - name: Build iOS App
+        run: |
+          flutter build ios --release --no-codesign
+
+      - name: Create IPA
+        run: |
+          mkdir -p ${{ env.output }}
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -r ${{ env.output }}/OpenListFlutter.ipa Payload/
+
+      - name: Get App Version
+        run: |
+          echo "ver_name=$(grep -A1 CFBundleShortVersionString ios/Runner/Info.plist | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')" >> $GITHUB_ENV
+
+      - name: Upload iOS App To Artifact
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "OpenListFlutter-iOS-v${{ env.ver_name }}"
+          path: "${{ env.output }}/OpenListFlutter.ipa"
