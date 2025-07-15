@@ -5,58 +5,120 @@ echo "Initializing Web assets for iOS build..."
 # Create dist directory
 mkdir -p dist
 
-# Use a more reliable approach for iOS
+# Use a more reliable approach for iOS with retry mechanism
 # First, try to get the latest release info with better error handling
 echo "Fetching latest release information..."
 
-# Method 1: Try with curl and better error handling
-RELEASE_INFO=$(curl -fsSL --max-time 10 \
-    -H "Accept: application/vnd.github.v3+json" \
-    -H "User-Agent: OpenList-iOS-Builder" \
-    "https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest" 2>/dev/null)
-
-if [ $? -ne 0 ] || [ -z "$RELEASE_INFO" ]; then
-    echo "Failed to fetch release info from GitHub API, trying alternative method..."
+# Function to fetch release info with retries
+fetch_release_info() {
+    local attempt=1
+    local max_attempts=3
     
-    # Method 2: Use a fallback URL pattern (assuming latest version)
-    echo "Using fallback download method..."
-    DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList-Frontend/releases/latest/download/openlist-frontend-dist.tar.gz"
+    while [ $attempt -le $max_attempts ]; do
+        echo "Attempt $attempt/$max_attempts: Fetching release info..."
+        
+        RELEASE_INFO=$(curl -fsSL --max-time 10 \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "User-Agent: OpenList-iOS-Builder" \
+            "https://api.github.com/repos/OpenListTeam/OpenList-Frontend/releases/latest" 2>/dev/null)
+        
+        local curl_exit_code=$?
+        
+        if [ $curl_exit_code -eq 0 ] && [ -n "$RELEASE_INFO" ]; then
+            echo "Successfully fetched release info on attempt $attempt"
+            return 0
+        else
+            echo "Attempt $attempt failed (exit code: $curl_exit_code)"
+            if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting 5 seconds before retry..."
+                sleep 5
+            fi
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Failed to fetch release info after $max_attempts attempts"
+    return 1
+}
+
+# Try to fetch release info with retries
+if ! fetch_release_info; then
+    echo "Cannot proceed without API access"
+    exit 1
 else
     echo "Successfully fetched release info, parsing download URL..."
     
     # Check if jq is available
     if command -v jq >/dev/null 2>&1; then
-        DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.browser_download_url | test("openlist-frontend-dist") and (test("openlist-frontend-dist-lite") | not)) | .browser_download_url')
+        echo "Using jq to parse JSON..."
+        DOWNLOAD_URL=$(echo "$RELEASE_INFO" | jq -r '.assets[] | select(.browser_download_url | test("openlist-frontend-dist.*\\.tar\\.gz$") and (test("openlist-frontend-dist-lite") | not)) | .browser_download_url')
+        echo "jq found URL: $DOWNLOAD_URL"
     else
         echo "jq not available, using grep/sed to parse JSON..."
-        # Fallback parsing without jq
-        DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o '"browser_download_url":"[^"]*openlist-frontend-dist[^"]*"' | grep -v 'lite' | head -1 | sed 's/.*"browser_download_url":"\([^"]*\)".*/\1/')
+        # More robust fallback parsing without jq
+        # Look for openlist-frontend-dist-v*.tar.gz but not lite version
+        DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o '"browser_download_url":"[^"]*openlist-frontend-dist-v[^"]*\.tar\.gz"' | grep -v 'lite' | head -1 | sed 's/.*"browser_download_url":"\([^"]*\)".*/\1/')
+        echo "grep/sed found URL: $DOWNLOAD_URL"
+        
+        # If the above doesn't work, try a more general pattern
+        if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
+            echo "Trying more general pattern..."
+            DOWNLOAD_URL=$(echo "$RELEASE_INFO" | grep -o '"browser_download_url":"[^"]*openlist-frontend-dist[^"]*\.tar\.gz"' | grep -v 'lite' | head -1 | sed 's/.*"browser_download_url":"\([^"]*\)".*/\1/')
+            echo "General pattern found URL: $DOWNLOAD_URL"
+        fi
     fi
 fi
 
 # Validate download URL
 if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
-    echo "Error: Could not determine download URL"
-    echo "Trying direct latest release URL..."
-    DOWNLOAD_URL="https://github.com/OpenListTeam/OpenList-Frontend/releases/latest/download/openlist-frontend-dist.tar.gz"
+    echo "Error: Could not determine download URL from API response"
+    echo "API response preview:"
+    echo "$RELEASE_INFO" | head -20
+    exit 1
 fi
 
 echo "Download URL: $DOWNLOAD_URL"
 
-# Download the file
+# Function to download file with retries
+download_file() {
+    local url="$1"
+    local output="$2"
+    local attempt=1
+    local max_attempts=3
+    
+    while [ $attempt -le $max_attempts ]; do
+        echo "Download attempt $attempt/$max_attempts..."
+        
+        # Try download
+        if curl -fsSL --max-time 30 -o "$output" "$url"; then
+            echo "Download successful on attempt $attempt"
+            return 0
+        else
+            local curl_exit_code=$?
+            echo "Download attempt $attempt failed (exit code: $curl_exit_code)"
+            
+            # Remove partial file if it exists
+            rm -f "$output"
+            
+            if [ $attempt -lt $max_attempts ]; then
+                echo "Waiting 5 seconds before retry..."
+                sleep 5
+            fi
+        fi
+        
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Failed to download after $max_attempts attempts"
+    return 1
+}
+
+# Download the file with retries
 echo "Downloading web assets..."
-if curl -fsSL --max-time 30 -o dist.tar.gz "$DOWNLOAD_URL"; then
-    echo "Download successful"
-else
-    echo "Download failed, trying alternative approach..."
-    # Try without following redirects first
-    if curl -fsS --max-time 30 -o dist.tar.gz "$DOWNLOAD_URL"; then
-        echo "Download successful with alternative method"
-    else
-        echo "Error: Failed to download web assets"
-        echo "All download methods failed"
-        exit 1
-    fi
+if ! download_file "$DOWNLOAD_URL" "dist.tar.gz"; then
+    echo "Error: Failed to download web assets after multiple attempts"
+    exit 1
 fi
 
 # Verify the downloaded file
