@@ -3,29 +3,29 @@
 # First check if we're in the right place
 echo "Starting iOS build from: $(pwd)"
 
-# Try to find the correct directory with go.mod
-if [ -f ../go.mod ]; then
-    echo "Found go.mod in parent directory, using that"
-    cd ../ || exit
-elif [ -f ../openlist/go.mod ]; then
-    echo "Found go.mod in openlist directory"
-    cd ../openlist/ || exit
-elif [ -f ../openlistlib/go.mod ]; then
-    echo "Found go.mod in openlistlib directory"
-    cd ../openlistlib/ || exit
+# For iOS, we need to find the bindable package directory, not just go.mod
+# The original approach was correct - look for openlistlib directory
+if [ -d ../openlistlib ]; then
+    echo "Found openlistlib directory, using that for iOS build"
+    cd ../openlistlib || exit
 else
-    echo "Searching for go.mod in parent directories..."
+    echo "Searching for bindable package directory..."
     cd ../ || exit
-    find . -name "go.mod" -type f | head -5
     
-    # Try the most likely location
-    if [ -f go.mod ]; then
-        echo "Using go.mod in current directory: $(pwd)"
+    # Look for directories that might contain bindable packages
+    if [ -d openlistlib ]; then
+        echo "Found openlistlib in current directory"
+        cd openlistlib || exit
+    elif [ -d cmd/openlistlib ]; then
+        echo "Found openlistlib in cmd directory"
+        cd cmd/openlistlib || exit
     else
-        echo "Error: Cannot find go.mod file"
+        echo "Error: Cannot find openlistlib directory for iOS binding"
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
         ls -la
+        echo "Looking for Go files that might be bindable..."
+        find . -name "*.go" -type f | head -10
         exit 1
     fi
 fi
@@ -44,17 +44,34 @@ echo "Go version: $(go version)"
 echo "GOPATH: $GOPATH"
 echo "GOROOT: $GOROOT"
 
-# Verify go.mod exists
-if [ ! -f go.mod ]; then
-    echo "Error: go.mod still not found in $(pwd)"
+# Check if this directory has Go files suitable for binding
+if [ ! -f *.go ]; then
+    echo "Warning: No Go files found in current directory"
     echo "Directory contents:"
     ls -la
-    exit 1
 fi
 
-echo "Go module info:"
-go mod tidy
-go list -m all | head -10
+# Check if we need to work with go modules
+if [ -f go.mod ]; then
+    echo "Go module info:"
+    go mod tidy
+    go list -m all | head -10
+    
+    # Ensure dependencies are downloaded
+    echo "Downloading dependencies..."
+    go mod download
+else
+    echo "No go.mod in current directory, checking parent..."
+    if [ -f ../go.mod ]; then
+        echo "Found go.mod in parent directory"
+        cd ..
+        go mod tidy
+        go mod download
+        cd openlistlib
+    else
+        echo "Warning: No go.mod found, proceeding without module operations"
+    fi
+fi
 
 # Set CGO environment for iOS
 export CGO_ENABLED=1
@@ -64,15 +81,17 @@ echo "Cleaning previous builds..."
 go clean -cache
 go clean -modcache || true
 
-# Ensure dependencies are downloaded
-echo "Downloading dependencies..."
-go mod download
-
 # Try a simple build first to check for issues
 echo "Testing basic build..."
 go build -v . || {
     echo "Error: Basic go build failed"
-    exit 1
+    echo "Trying to build from parent directory with module path..."
+    cd ..
+    go build -v ./openlistlib || {
+        echo "Error: Build failed from parent directory too"
+        exit 1
+    }
+    cd openlistlib
 }
 
 # Build for iOS with more verbose output
