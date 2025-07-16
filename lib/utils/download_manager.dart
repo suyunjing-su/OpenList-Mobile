@@ -7,14 +7,96 @@ import 'package:get/get.dart' as getx;
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
 
+/// 下载任务状态
+enum DownloadStatus {
+  pending,    // 等待中
+  downloading, // 下载中
+  completed,   // 已完成
+  failed,      // 失败
+  cancelled,   // 已取消
+}
+
+/// 下载任务
+class DownloadTask {
+  final String id;
+  final String url;
+  final String filename;
+  final String filePath;
+  DownloadStatus status;
+  double progress;
+  int receivedBytes;
+  int totalBytes;
+  String? errorMessage;
+  DateTime startTime;
+  DateTime? endTime;
+  CancelToken? cancelToken;
+
+  DownloadTask({
+    required this.id,
+    required this.url,
+    required this.filename,
+    required this.filePath,
+    this.status = DownloadStatus.pending,
+    this.progress = 0.0,
+    this.receivedBytes = 0,
+    this.totalBytes = 0,
+    this.errorMessage,
+    DateTime? startTime,
+    this.endTime,
+    this.cancelToken,
+  }) : startTime = startTime ?? DateTime.now();
+
+  String get statusText {
+    switch (status) {
+      case DownloadStatus.pending:
+        return '等待中';
+      case DownloadStatus.downloading:
+        return '下载中';
+      case DownloadStatus.completed:
+        return '已完成';
+      case DownloadStatus.failed:
+        return '失败';
+      case DownloadStatus.cancelled:
+        return '已取消';
+    }
+  }
+
+  String get progressText {
+    if (totalBytes > 0) {
+      return '${_formatBytes(receivedBytes)} / ${_formatBytes(totalBytes)}';
+    }
+    return '${_formatBytes(receivedBytes)}';
+  }
+
+  String _formatBytes(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)}GB';
+  }
+}
+
 class DownloadManager {
   static final Dio _dio = Dio();
+  static final Map<String, DownloadTask> _activeTasks = {};
+  static final List<DownloadTask> _completedTasks = [];
   
+  /// 获取所有活跃的下载任务
+  static List<DownloadTask> get activeTasks => _activeTasks.values.toList();
+  
+  /// 获取所有已完成的下载任务
+  static List<DownloadTask> get completedTasks => _completedTasks;
+  
+  /// 获取所有下载任务
+  static List<DownloadTask> get allTasks => [..._activeTasks.values, ..._completedTasks];
+
   /// 直接下载文件到系统下载目录
   static Future<bool> downloadFile({
     required String url,
     String? filename,
     Function(int received, int total)? onProgress,
+    bool showStartNotification = true,
+    bool showCompleteNotification = true,
   }) async {
     try {
       // 请求存储权限
@@ -65,14 +147,16 @@ class DownloadManager {
       // 检查文件是否已存在，如果存在则添加序号
       filePath = _getUniqueFilePath(filePath);
 
-      log('开��下载文件: $url');
+      log('开始下载文件: $url');
       log('保存路径: $filePath');
 
       // 显示下载开始提示
-      getx.Get.showSnackbar(getx.GetSnackBar(
-        message: '开始下载: $finalFilename',
-        duration: const Duration(seconds: 2),
-      ));
+      if (showStartNotification) {
+        getx.Get.showSnackbar(getx.GetSnackBar(
+          message: '开始下载: $finalFilename',
+          duration: const Duration(seconds: 2),
+        ));
+      }
 
       // 执行下载
       await _dio.download(
@@ -92,16 +176,18 @@ class DownloadManager {
       );
 
       // 下载完成提示
-      getx.Get.showSnackbar(getx.GetSnackBar(
-        message: '下载完成: $finalFilename',
-        duration: const Duration(seconds: 3),
-        mainButton: TextButton(
-          onPressed: () {
-            _openFile(filePath);
-          },
-          child: const Text('打开'),
-        ),
-      ));
+      if (showCompleteNotification) {
+        getx.Get.showSnackbar(getx.GetSnackBar(
+          message: '下载完成: $finalFilename',
+          duration: const Duration(seconds: 3),
+          mainButton: TextButton(
+            onPressed: () {
+              _openFile(filePath);
+            },
+            child: const Text('打开'),
+          ),
+        ));
+      }
 
       log('文件下载完成: $filePath');
       return true;
@@ -114,6 +200,156 @@ class DownloadManager {
       ));
       return false;
     }
+  }
+
+  /// 带进度条的下载（后台下载，不阻塞UI）
+  static Future<bool> downloadFileWithProgress({
+    required String url,
+    String? filename,
+  }) async {
+    // 生成任务ID
+    String taskId = DateTime.now().millisecondsSinceEpoch.toString();
+    
+    // 获取下载目录
+    Directory? downloadDir = await _getOpenListDownloadDirectory();
+    if (downloadDir == null) {
+      getx.Get.showSnackbar(const getx.GetSnackBar(
+        message: '无法获取下载目录',
+        duration: Duration(seconds: 3),
+      ));
+      return false;
+    }
+
+    // 确定文件名和路径
+    String finalFilename = filename ?? _getFilenameFromUrl(url);
+    String filePath = '${downloadDir.path}/$finalFilename';
+    filePath = _getUniqueFilePath(filePath);
+    finalFilename = filePath.split('/').last;
+
+    // 创建下载任务
+    CancelToken cancelToken = CancelToken();
+    DownloadTask task = DownloadTask(
+      id: taskId,
+      url: url,
+      filename: finalFilename,
+      filePath: filePath,
+      status: DownloadStatus.pending,
+      cancelToken: cancelToken,
+    );
+
+    // 添加到活跃任务列表
+    _activeTasks[taskId] = task;
+
+    // 显示开始下载提示（只显示一次）
+    getx.Get.showSnackbar(getx.GetSnackBar(
+      message: '开始下载: $finalFilename',
+      duration: const Duration(seconds: 2),
+      backgroundColor: Colors.green,
+    ));
+
+    try {
+      // 更新任务状态
+      task.status = DownloadStatus.downloading;
+      
+      // 执行下载
+      await _dio.download(
+        url,
+        filePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (task.status == DownloadStatus.cancelled) return;
+          
+          task.receivedBytes = received;
+          task.totalBytes = total;
+          if (total > 0) {
+            task.progress = received / total;
+          }
+          
+          log('下载进度: ${(task.progress * 100).toStringAsFixed(1)}%');
+        },
+      );
+
+      // 下载完成
+      task.status = DownloadStatus.completed;
+      task.endTime = DateTime.now();
+      task.progress = 1.0;
+
+      // 移动到已完成列表
+      _activeTasks.remove(taskId);
+      _completedTasks.insert(0, task); // 插入到开头，最新的在前面
+
+      // 显示完成提示
+      getx.Get.showSnackbar(getx.GetSnackBar(
+        message: '下载完成: $finalFilename',
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.blue,
+        mainButton: TextButton(
+          onPressed: () {
+            _openFile(filePath);
+          },
+          child: const Text('打开'),
+        ),
+      ));
+
+      log('文件下载完成: $filePath');
+      return true;
+
+    } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) {
+        // 用户取消下载
+        task.status = DownloadStatus.cancelled;
+        task.endTime = DateTime.now();
+        log('下载已取消: $url');
+      } else {
+        // 下载失败
+        task.status = DownloadStatus.failed;
+        task.errorMessage = e.toString();
+        task.endTime = DateTime.now();
+        log('下载失败: $e');
+        
+        getx.Get.showSnackbar(getx.GetSnackBar(
+          message: '下载失败: $finalFilename',
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ));
+      }
+
+      // 移动到已完成列表
+      _activeTasks.remove(taskId);
+      _completedTasks.insert(0, task);
+      
+      return false;
+    }
+  }
+
+  /// 简单的后台下载（推荐使用）
+  static Future<bool> downloadFileInBackground({
+    required String url,
+    String? filename,
+  }) async {
+    return await downloadFileWithProgress(
+      url: url,
+      filename: filename,
+    );
+  }
+
+  /// 取消下载任务
+  static void cancelDownload(String taskId) {
+    DownloadTask? task = _activeTasks[taskId];
+    if (task != null && task.cancelToken != null) {
+      task.cancelToken!.cancel('用户取消下载');
+    }
+  }
+
+  /// 清除已完成的下载记录
+  static void clearCompletedTasks() {
+    _completedTasks.clear();
+  }
+
+  /// 删除下载任务记录
+  static void removeTask(String taskId) {
+    _activeTasks.remove(taskId);
+    _completedTasks.removeWhere((task) => task.id == taskId);
   }
 
   /// 获取OpenList专用下载目录
@@ -185,7 +421,7 @@ class DownloadManager {
       log('解析文件名失败: $e');
     }
     
-    // 如果无法从URL提取文件名，使用时间戳
+    // 如果无法从URL提取��件名，使用时间戳
     return 'download_${DateTime.now().millisecondsSinceEpoch}';
   }
 
@@ -312,24 +548,6 @@ class DownloadManager {
     );
   }
 
-  /// 分享文件（iOS专用）
-  static void _shareFile(String filePath) {
-    // 这里可以集成share_plus插件来分享文件
-    // 暂时显示文件路径
-    getx.Get.dialog(
-      AlertDialog(
-        title: const Text('文件位置'),
-        content: SelectableText(filePath),
-        actions: [
-          TextButton(
-            onPressed: () => getx.Get.back(),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// 获取OpenList下载目录路径（公共方法）
   static Future<String?> getDownloadDirectoryPath() async {
     Directory? dir = await _getOpenListDownloadDirectory();
@@ -381,133 +599,9 @@ class DownloadManager {
     }
     return false;
   }
-
-  /// 根据文件扩展名获取MIME类型
-  static String _getMimeType(String filePath) {
-    String extension = filePath.split('.').last.toLowerCase();
-    switch (extension) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'png':
-        return 'image/png';
-      case 'gif':
-        return 'image/gif';
-      case 'mp4':
-        return 'video/mp4';
-      case 'mp3':
-        return 'audio/mpeg';
-      case 'txt':
-        return 'text/plain';
-      case 'zip':
-        return 'application/zip';
-      case 'apk':
-        return 'application/vnd.android.package-archive';
-      default:
-        return 'application/octet-stream';
-    }
-  }
-
-  /// 带进度条的下载（后台下载，不阻塞UI）
-  static Future<bool> downloadFileWithProgress({
-    required String url,
-    String? filename,
-  }) async {
-    // 创建下载控制器
-    final controller = DownloadController();
-    getx.Get.put(controller, tag: url); // 使用URL作为tag来区分不同的下载任务
-    
-    // 显示开始下载的简短提示
-    getx.Get.showSnackbar(getx.GetSnackBar(
-      message: '开始下载: ${filename ?? '文件'}',
-      duration: const Duration(seconds: 2),
-      mainButton: TextButton(
-        onPressed: () {
-          _showDownloadProgressDialog(controller, url);
-        },
-        child: const Text('查看进度'),
-      ),
-    ));
-    
-    // 后台执行下载
-    bool downloadSuccess = await downloadFile(
-      url: url,
-      filename: filename,
-      onProgress: (received, total) {
-        if (total > 0) {
-          controller.updateProgress(received / total, received, total);
-        }
-      },
-    );
-    
-    // 下载完成后清理控制器
-    getx.Get.delete<DownloadController>(tag: url);
-    
-    return downloadSuccess;
-  }
-
-  /// 显示下载进度对话框（可选）
-  static void _showDownloadProgressDialog(DownloadController controller, String url) {
-    getx.Get.dialog(
-      getx.GetBuilder<DownloadController>(
-        init: controller,
-        builder: (controller) {
-          return AlertDialog(
-            title: const Text('下载进度'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LinearProgressIndicator(value: controller.progress),
-                const SizedBox(height: 16),
-                Text('${(controller.progress * 100).toStringAsFixed(1)}%'),
-                Text(controller.statusText),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  getx.Get.back();
-                },
-                child: const Text('后台下载'),
-              ),
-              TextButton(
-                onPressed: () {
-                  controller.cancelDownload();
-                  getx.Get.back();
-                },
-                child: const Text('取消下载'),
-              ),
-            ],
-          );
-        },
-      ),
-      barrierDismissible: true, // 允许点击外部关闭
-    );
-  }
-
-  /// 简单的后台下载（推荐使用）
-  static Future<bool> downloadFileInBackground({
-    required String url,
-    String? filename,
-  }) async {
-    // 显示开始下载提示
-    getx.Get.showSnackbar(getx.GetSnackBar(
-      message: '开始下载: ${filename ?? _getFilenameFromUrl(url)}',
-      duration: const Duration(seconds: 2),
-      backgroundColor: Colors.green,
-    ));
-    
-    // 后台执行下载
-    return await downloadFile(
-      url: url,
-      filename: filename,
-    );
-  }
 }
 
-/// 下载控制器
+/// 下载控制器（保持向后兼容）
 class DownloadController extends getx.GetxController {
   double _progress = 0.0;
   String _statusText = '准备下载...';

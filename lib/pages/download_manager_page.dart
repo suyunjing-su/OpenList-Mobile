@@ -12,15 +12,36 @@ class DownloadManagerPage extends StatefulWidget {
   State<DownloadManagerPage> createState() => _DownloadManagerPageState();
 }
 
-class _DownloadManagerPageState extends State<DownloadManagerPage> {
+class _DownloadManagerPageState extends State<DownloadManagerPage>
+    with TickerProviderStateMixin {
   List<FileSystemEntity> _downloadedFiles = [];
   bool _isLoading = true;
   String? _downloadPath;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadDownloadedFiles();
+    
+    // 定期刷新活跃任务状态
+    _startPeriodicRefresh();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _startPeriodicRefresh() {
+    // 每秒刷新一次活跃任务状态
+    Stream.periodic(const Duration(seconds: 1)).listen((_) {
+      if (mounted && _tabController.index == 0) {
+        setState(() {});
+      }
+    });
   }
 
   Future<void> _loadDownloadedFiles() async {
@@ -84,6 +105,366 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
       default:
         return Icons.insert_drive_file;
     }
+  }
+
+  Color _getStatusColor(DownloadStatus status) {
+    switch (status) {
+      case DownloadStatus.pending:
+        return Colors.orange;
+      case DownloadStatus.downloading:
+        return Colors.blue;
+      case DownloadStatus.completed:
+        return Colors.green;
+      case DownloadStatus.failed:
+        return Colors.red;
+      case DownloadStatus.cancelled:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildActiveTasksTab() {
+    List<DownloadTask> activeTasks = DownloadManager.activeTasks;
+    
+    if (activeTasks.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.download_outlined,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              '暂无进行中的下载',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      itemCount: activeTasks.length,
+      itemBuilder: (context, index) {
+        DownloadTask task = activeTasks[index];
+        
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _getFileIcon(task.filename),
+                      size: 32,
+                      color: _getStatusColor(task.status),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            task.filename,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            task.statusText,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: _getStatusColor(task.status),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (task.status == DownloadStatus.downloading)
+                      IconButton(
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        onPressed: () {
+                          _confirmCancelDownload(task);
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (task.status == DownloadStatus.downloading) ...[
+                  LinearProgressIndicator(
+                    value: task.progress,
+                    backgroundColor: Colors.grey[300],
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      _getStatusColor(task.status),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        task.progressText,
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        '${(task.progress * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ] else if (task.status == DownloadStatus.failed) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error, color: Colors.red, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            task.errorMessage ?? '下载失败',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.red,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(
+                  '开始时间: ${_formatDateTime(task.startTime)}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompletedTasksTab() {
+    List<DownloadTask> completedTasks = DownloadManager.completedTasks;
+    
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (completedTasks.isEmpty && _downloadedFiles.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.download_done,
+              size: 64,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16),
+            Text(
+              '暂无已完成的下载',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadDownloadedFiles,
+      child: ListView(
+        children: [
+          // 显示任务记录中的已完成下载
+          ...completedTasks.map((task) => Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: Icon(
+                _getFileIcon(task.filename),
+                size: 32,
+                color: _getStatusColor(task.status),
+              ),
+              title: Text(
+                task.filename,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.statusText,
+                    style: TextStyle(color: _getStatusColor(task.status)),
+                  ),
+                  if (task.endTime != null)
+                    Text('完成时间: ${_formatDateTime(task.endTime!)}'),
+                  if (task.totalBytes > 0)
+                    Text('大小: ${_formatFileSize(task.totalBytes)}'),
+                ],
+              ),
+              trailing: PopupMenuButton<String>(
+                onSelected: (value) {
+                  switch (value) {
+                    case 'open':
+                      if (task.status == DownloadStatus.completed) {
+                        _openFile(task.filePath);
+                      }
+                      break;
+                    case 'delete_record':
+                      _confirmDeleteTaskRecord(task);
+                      break;
+                    case 'delete_file':
+                      if (task.status == DownloadStatus.completed) {
+                        _confirmDeleteFile(task.filename);
+                      }
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  if (task.status == DownloadStatus.completed)
+                    const PopupMenuItem(
+                      value: 'open',
+                      child: Row(
+                        children: [
+                          Icon(Icons.open_in_new),
+                          SizedBox(width: 8),
+                          Text('打开文件'),
+                        ],
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: 'delete_record',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline),
+                        SizedBox(width: 8),
+                        Text('删除记录'),
+                      ],
+                    ),
+                  ),
+                  if (task.status == DownloadStatus.completed)
+                    const PopupMenuItem(
+                      value: 'delete_file',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('删除文件', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          )),
+          
+          // 显示文件系统中的其他下载文件
+          ..._downloadedFiles.where((file) {
+            String filename = file.path.split('/').last;
+            // 过滤掉已经在任务记录的文件
+            return !completedTasks.any((task) => task.filename == filename);
+          }).map((file) {
+            String filename = file.path.split('/').last;
+            FileStat stat = file.statSync();
+            
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: ListTile(
+                leading: Icon(
+                  _getFileIcon(filename),
+                  size: 32,
+                  color: Theme.of(context).primaryColor,
+                ),
+                title: Text(
+                  filename,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('大小: ${_formatFileSize(stat.size)}'),
+                    Text('时间: ${_formatDateTime(stat.modified)}'),
+                  ],
+                ),
+                trailing: const Icon(Icons.more_vert),
+                onTap: () => _showFileOptions(file),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  void _confirmCancelDownload(DownloadTask task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('取消下载'),
+        content: Text('确定要取消下载 "${task.filename}" 吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('继续下载'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              DownloadManager.cancelDownload(task.id);
+              setState(() {});
+            },
+            child: const Text('取消下载', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteTaskRecord(DownloadTask task) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除记录'),
+        content: Text('确定要删除 "${task.filename}" 的下载记录吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              DownloadManager.removeTask(task.id);
+              setState(() {});
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showFileOptions(FileSystemEntity file) {
@@ -227,11 +608,13 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
               Navigator.pop(context);
               bool success = await DownloadManager.clearDownloadDirectory();
               if (success) {
+                DownloadManager.clearCompletedTasks();
                 Get.showSnackbar(const GetSnackBar(
                   message: '已清空下载目录',
                   duration: Duration(seconds: 2),
                 ));
                 _loadDownloadedFiles(); // 刷新列表
+                setState(() {});
               } else {
                 Get.showSnackbar(const GetSnackBar(
                   message: '清空失败',
@@ -344,14 +727,38 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('下载管理'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              icon: const Icon(Icons.downloading),
+              text: '进行中 (${DownloadManager.activeTasks.length})',
+            ),
+            Tab(
+              icon: const Icon(Icons.download_done),
+              text: '已完成 (${DownloadManager.completedTasks.length + _downloadedFiles.length})',
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadDownloadedFiles,
+            onPressed: () {
+              _loadDownloadedFiles();
+              setState(() {});
+            },
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
+                case 'clear_records':
+                  DownloadManager.clearCompletedTasks();
+                  setState(() {});
+                  Get.showSnackbar(const GetSnackBar(
+                    message: '已清空下载记录',
+                    duration: Duration(seconds: 2),
+                  ));
+                  break;
                 case 'clear_all':
                   _confirmClearAll();
                   break;
@@ -385,10 +792,20 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                 ),
               ),
               const PopupMenuItem(
+                value: 'clear_records',
+                child: Row(
+                  children: [
+                    Icon(Icons.clear_all),
+                    SizedBox(width: 8),
+                    Text('清空记录'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
                 value: 'clear_all',
                 child: Row(
                   children: [
-                    Icon(Icons.clear_all, color: Colors.red),
+                    Icon(Icons.delete_forever, color: Colors.red),
                     SizedBox(width: 8),
                     Text('清空所有', style: TextStyle(color: Colors.red)),
                   ],
@@ -398,103 +815,13 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _downloadedFiles.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.download_done,
-                        size: 64,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '暂无下载文件',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '下载的文件将显示在这里',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadDownloadedFiles,
-                  child: ListView.builder(
-                    itemCount: _downloadedFiles.length,
-                    itemBuilder: (context, index) {
-                      FileSystemEntity file = _downloadedFiles[index];
-                      String filename = file.path.split('/').last;
-                      FileStat stat = file.statSync();
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: ListTile(
-                          leading: Icon(
-                            _getFileIcon(filename),
-                            size: 32,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          title: Text(
-                            filename,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('大小: ${_formatFileSize(stat.size)}'),
-                              Text('时间: ${_formatDateTime(stat.modified)}'),
-                            ],
-                          ),
-                          trailing: const Icon(Icons.more_vert),
-                          onTap: () => _showFileOptions(file),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-      floatingActionButton: _downloadedFiles.isNotEmpty
-          ? FloatingActionButton(
-              onPressed: () {
-                Get.dialog(
-                  AlertDialog(
-                    title: const Text('下载目录'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('文件保存在:'),
-                        const SizedBox(height: 8),
-                        SelectableText(
-                          _downloadPath ?? '未知',
-                          style: const TextStyle(fontFamily: 'monospace'),
-                        ),
-                        const SizedBox(height: 16),
-                        Text('共 ${_downloadedFiles.length} 个文件'),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Get.back(),
-                        child: const Text('确定'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-              child: const Icon(Icons.info),
-            )
-          : null,
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildActiveTasksTab(),
+          _buildCompletedTasksTab(),
+        ],
+      ),
     );
   }
 }
