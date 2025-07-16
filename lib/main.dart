@@ -69,15 +69,6 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key, required this.title});
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
   final String title;
   static const webPageIndex = 0;
 
@@ -114,7 +105,7 @@ class MyHomePage extends StatelessWidget {
                     label: S.current.appName,
                   ),
                   NavigationDestination(
-                    icon: _buildDownloadIcon(),
+                    icon: const Icon(Icons.arrow_downward),
                     label: '下载管理',
                   ),
                   NavigationDestination(
@@ -132,20 +123,6 @@ class MyHomePage extends StatelessWidget {
 
                   controller.setPageIndex(index);
                 })));
-  }
-
-  Widget _buildDownloadIcon() {
-    return Obx(() {
-      int activeCount = DownloadManager.activeTasks.length;
-      if (activeCount > 0) {
-        return Badge(
-          label: Text('$activeCount'),
-          child: const Icon(Icons.download),
-        );
-      } else {
-        return const Icon(Icons.download);
-      }
-    });
   }
 }
 
