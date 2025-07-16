@@ -1,14 +1,14 @@
-[![Release](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/release.yaml/badge.svg)](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/release.yaml)
-[![Test](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/build.yaml/badge.svg)](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/build.yaml)
-[![CheckOpenList](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/sync_openlist.yaml/badge.svg)](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/sync_openlist.yaml)
+[![Release](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/release.yaml/badge.svg)](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/release.yaml)
+[![Test](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/build.yaml/badge.svg)](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/build.yaml)
+[![CheckOpenList](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/sync_openlist.yaml/badge.svg)](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/sync_openlist.yaml)
 
-# OpenListFlutter
+# OpenList-Mobile
 
-OpenListFlutter是一个基于OpenList的Android服务端，使用Google Flutter作为UI框架。
+OpenList-Mobile是一个基于OpenList的Android服务端，使用Google Flutter作为UI框架。
 
-> [Github Actions](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/sync_openlist.yaml)
+> [Github Actions](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/sync_openlist.yaml)
 > 每日早晚五点钟检查最新的 [OpenList](https://github.com/OpenListTeam/OpenList/releases)
-> 并自动构建APK，发布到 [Release](https://github.com/OpenListTeam/OpenListFlutter/releases)
+> 并自动构建APK，发布到 [Release](https://github.com/OpenListTeam/OpenList-Mobile/releases)
 > 中，您只需耐心等待片刻并在应用内检查更新即可。
 
 <img src="./images/openlist.jpg" height="150px">
@@ -18,5 +18,5 @@ OpenListFlutter是一个基于OpenList的Android服务端，使用Google Flutter
 
 # Download
 
-- [Github Action (DEV)](https://github.com/OpenListTeam/OpenListFlutter/actions/workflows/build.yaml) 开发版
+- [Github Action (DEV)](https://github.com/OpenListTeam/OpenList-Mobile/actions/workflows/build.yaml) 开发版
 
