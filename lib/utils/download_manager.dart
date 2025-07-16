@@ -356,10 +356,75 @@ class DownloadManager {
     return newPath;
   }
 
+  /// 检查是否为 APK 文件
+  static bool _isApkFile(String filePath) {
+    return filePath.toLowerCase().endsWith('.apk');
+  }
+
+  /// 检查和请求安装权限
+  static Future<bool> _checkInstallPermission() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      // 检查是否有安装权限
+      bool hasPermission = await Permission.requestInstallPackages.isGranted;
+      
+      if (!hasPermission) {
+        // 请求安装权限
+        PermissionStatus status = await Permission.requestInstallPackages.request();
+        
+        if (status.isGranted) {
+          return true;
+        } else if (status.isPermanentlyDenied) {
+          // 权限被永久拒绝，引导用户到设置页面
+          getx.Get.dialog(
+            AlertDialog(
+              title: const Text('需要安装权限'),
+              content: const Text('为了安装 APK 文件，需要授予安装权限。请在设置中手动开���。'),
+              actions: [
+                TextButton(
+                  onPressed: () => getx.Get.back(),
+                  child: const Text('取消'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    getx.Get.back();
+                    openAppSettings();
+                  },
+                  child: const Text('去设置'),
+                ),
+              ],
+            ),
+          );
+          return false;
+        } else {
+          getx.Get.showSnackbar(const getx.GetSnackBar(
+            message: '需要安装权限才能安装 APK 文件',
+            duration: Duration(seconds: 3),
+          ));
+          return false;
+        }
+      }
+      
+      return true;
+    } catch (e) {
+      log('检查安装权限失败: $e');
+      return true; // 如果检查失败，继续尝试打开
+    }
+  }
+
   /// 尝试打开文件
   static Future<void> _openFile(String filePath) async {
     try {
       log('尝试打开文件: $filePath');
+      
+      // 如果是 APK 文件，先检查安装权限
+      if (_isApkFile(filePath)) {
+        bool hasPermission = await _checkInstallPermission();
+        if (!hasPermission) {
+          return; // 没有权限，不继续打开
+        }
+      }
       
       // 使用 open_filex 插件打开文件
       final result = await OpenFilex.open(filePath);
@@ -372,16 +437,29 @@ class DownloadManager {
           // 文件成功打开，不需要额外提示
           break;
         case ResultType.noAppToOpen:
-          getx.Get.showSnackbar(getx.GetSnackBar(
-            message: '没有找到可以打开此文件的应用',
-            duration: const Duration(seconds: 3),
-            mainButton: TextButton(
-              onPressed: () {
-                _showFileLocation(filePath);
-              },
-              child: const Text('查看位置'),
-            ),
-          ));
+          if (_isApkFile(filePath)) {
+            getx.Get.showSnackbar(getx.GetSnackBar(
+              message: '无法安装 APK 文件，可能需要在设置中开启"允许安装未知来源应用"',
+              duration: const Duration(seconds: 5),
+              mainButton: TextButton(
+                onPressed: () {
+                  openAppSettings();
+                },
+                child: const Text('去设置'),
+              ),
+            ));
+          } else {
+            getx.Get.showSnackbar(getx.GetSnackBar(
+              message: '没有找到可以打开此文件的应用',
+              duration: const Duration(seconds: 3),
+              mainButton: TextButton(
+                onPressed: () {
+                  _showFileLocation(filePath);
+                },
+                child: const Text('查看位置'),
+              ),
+            ));
+          }
           break;
         case ResultType.fileNotFound:
           getx.Get.showSnackbar(const getx.GetSnackBar(
@@ -390,10 +468,23 @@ class DownloadManager {
           ));
           break;
         case ResultType.permissionDenied:
-          getx.Get.showSnackbar(const getx.GetSnackBar(
-            message: '没有权限打开此文件',
-            duration: Duration(seconds: 3),
-          ));
+          if (_isApkFile(filePath)) {
+            getx.Get.showSnackbar(getx.GetSnackBar(
+              message: '没有权限安装 APK 文件，请在设置中开启安装权限',
+              duration: const Duration(seconds: 5),
+              mainButton: TextButton(
+                onPressed: () {
+                  openAppSettings();
+                },
+                child: const Text('去设置'),
+              ),
+            ));
+          } else {
+            getx.Get.showSnackbar(const getx.GetSnackBar(
+              message: '没有权限打开此文件',
+              duration: Duration(seconds: 3),
+            ));
+          }
           break;
         case ResultType.error:
         default:
