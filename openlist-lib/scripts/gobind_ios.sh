@@ -97,8 +97,9 @@ else
         
         # Reinstall gomobile tools with the correct version
         echo "Reinstalling gomobile tools with correct version..."
-        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20250711185624-d5bb5ecc55c0
-        go install golang.org/x/mobile/cmd/gobind@v0.0.0-20250711185624-d5bb5ecc55c0
+        go get -u golang.org/x/mobile/...
+        go install golang.org/x/mobile/cmd/gobind@latest
+        go install golang.org/x/mobile/cmd/gomobile@latest
         
         # Reinitialize gomobile
         echo "Reinitializing gomobile..."
@@ -122,8 +123,7 @@ else
         # Build for iOS with more verbose output
         echo "Starting iOS build from module root..."
         echo "CGO_ENABLED: $CGO_ENABLED"
-        gomobile init
-        gomobile bind -ldflags "-s -w" -v -target="ios" ./openlistlib 2>&1 | tee ios_build.log || {
+        gomobile bind -ldflags '-w -s' --target=ios ./openlistlib 2>&1 | tee ios_build.log || {
             echo "Error: gomobile bind failed"
             echo "Build log:"
             cat ios_build.log 2>/dev/null || echo "No build log available"
