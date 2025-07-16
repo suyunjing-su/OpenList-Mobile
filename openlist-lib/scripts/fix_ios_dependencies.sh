@@ -61,45 +61,44 @@ echo "Found osversion.go at: $OSVERSION_FILE"
 
 # Check if file is writable (some module caches are read-only)
 if [ ! -w "$OSVERSION_FILE" ]; then
-    echo "File is not writable, attempting to make it writable..."
-    chmod +w "$OSVERSION_FILE" 2>/dev/null || {
-        echo "Cannot make file writable, trying to copy module to local directory..."
-        
-        # Create local copy of rclone module
-        LOCAL_RCLONE_DIR="./local_rclone"
-        mkdir -p "$LOCAL_RCLONE_DIR"
-        
-        echo "Copying rclone source to local directory..."
-        cp -r "$RCLONE_PATH"/* "$LOCAL_RCLONE_DIR/" 2>/dev/null || {
-            echo "Failed to copy rclone source, skipping patch"
-            exit 0
-        }
-        
-        # Update the file path to local copy
-        OSVERSION_FILE="$LOCAL_RCLONE_DIR/lib/buildinfo/osversion.go"
-        
-        # Add replace directive to use local copy
-        echo "Adding replace directive to use local rclone copy..."
-        go mod edit -replace github.com/rclone/rclone="./local_rclone"
-    fi
+    echo "File is not writable, creating local copy..."
+    
+    # Create local copy of rclone module
+    LOCAL_RCLONE_DIR="./local_rclone"
+    mkdir -p "$LOCAL_RCLONE_DIR"
+    
+    echo "Copying rclone source to local directory..."
+    cp -r "$RCLONE_PATH"/* "$LOCAL_RCLONE_DIR/" 2>/dev/null || {
+        echo "Failed to copy rclone source, skipping patch"
+        exit 0
+    }
+    
+    # Update the file path to local copy
+    OSVERSION_FILE="$LOCAL_RCLONE_DIR/lib/buildinfo/osversion.go"
+    
+    # Add replace directive to use local copy
+    echo "Adding replace directive to use local rclone copy..."
+    go mod edit -replace github.com/rclone/rclone="./local_rclone"
+else
+    echo "File is writable, patching in place..."
+    chmod +w "$OSVERSION_FILE" 2>/dev/null || true
 fi
 
 # Backup original file
 echo "Backing up original osversion.go..."
 cp "$OSVERSION_FILE" "$OSVERSION_FILE.backup" 2>/dev/null || echo "Could not create backup"
 
-# Replace the file content with iOS-compatible version
+# Replace the file content with iOS-compatible version using echo
 echo "Patching osversion.go for iOS compatibility..."
-cat > "$OSVERSION_FILE" << 'EOF'
-//go:build !windows
 
-package buildinfo
-
-// GetOSVersion returns OS version, kernel and bitness
-func GetOSVersion() (osVersion, osKernel string) {
-	return
-}
-EOF
+echo "//go:build !windows" > "$OSVERSION_FILE"
+echo "" >> "$OSVERSION_FILE"
+echo "package buildinfo" >> "$OSVERSION_FILE"
+echo "" >> "$OSVERSION_FILE"
+echo "// GetOSVersion returns OS version, kernel and bitness" >> "$OSVERSION_FILE"
+echo "func GetOSVersion() (osVersion, osKernel string) {" >> "$OSVERSION_FILE"
+echo "	return" >> "$OSVERSION_FILE"
+echo "}" >> "$OSVERSION_FILE"
 
 echo "Successfully patched osversion.go"
 
@@ -113,7 +112,6 @@ fi
 
 # Clean and rebuild to apply changes
 echo "Cleaning and rebuilding module with patched rclone..."
-go clean -modcache 2>/dev/null || echo "Could not clean mod cache (this is normal)"
 go mod tidy
 go mod download
 
