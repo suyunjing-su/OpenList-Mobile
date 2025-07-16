@@ -29,6 +29,9 @@ if [ -f ../go.mod ]; then
     
     # Fix iOS incompatible dependencies
     echo "Fixing iOS incompatible dependencies..."
+    go get -u golang.org/x/mobile/...
+    go install golang.org/x/mobile/cmd/gobind@latest
+    go install golang.org/x/mobile/cmd/gomobile@latest
     chmod +x scripts/fix_ios_dependencies.sh
     ./scripts/fix_ios_dependencies.sh
     
