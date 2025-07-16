@@ -137,34 +137,42 @@ class MyHomePage extends StatelessWidget {
   Widget _buildDownloadIcon() {
     return Obx(() {
       int activeCount = DownloadManager.activeTasks.length;
-      return Stack(
-        children: [
-          const Icon(Icons.download),
-          if (activeCount > 0)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                constraints: const BoxConstraints(
-                  minWidth: 16,
-                  minHeight: 16,
-                ),
-                child: Text(
-                  '$activeCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+      return SizedBox(
+        width: 24,
+        height: 24,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Positioned.fill(
+              child: Icon(Icons.download, size: 24),
+            ),
+            if (activeCount > 0)
+              Positioned(
+                right: -6,
+                top: -6,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  textAlign: TextAlign.center,
+                  constraints: const BoxConstraints(
+                    minWidth: 16,
+                    minHeight: 16,
+                  ),
+                  child: Text(
+                    '$activeCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       );
     });
   }
