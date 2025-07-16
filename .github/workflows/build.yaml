@@ -31,7 +31,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.22
+          go-version: 1.23.4
 
       - uses: actions/setup-java@v3
         with:
@@ -120,7 +120,7 @@ jobs:
 
       - uses: actions/setup-go@v4
         with:
-          go-version: 1.22
+          go-version: 1.23.4
 
       - name: Download OpenList Source Code
         run: |
@@ -150,6 +150,13 @@ jobs:
           which gobind || echo "gobind not in PATH"
           echo "Checking openlistlib directory..."
           ls -la ../openlistlib/ || echo "openlistlib directory not found"
+          echo "Checking for problematic imports..."
+          if [ -d ../openlistlib ]; then
+            echo "Go files in openlistlib:"
+            ls -la ../openlistlib/*.go 2>/dev/null || echo "No Go files found"
+            echo "Checking imports:"
+            grep -r "golang.org/x/mobile/bind" ../openlistlib/ 2>/dev/null || echo "No bind imports found"
+          fi
           echo "Building iOS framework..."
           ./gobind_ios.sh
 
