@@ -184,11 +184,16 @@ jobs:
 
       - name: Get App Version
         run: |
-          echo "ver_name=$(grep -A1 CFBundleShortVersionString ios/Runner/Info.plist | grep string | sed 's/.*<string>\(.*\)<\/string>.*/\1/')" >> $GITHUB_ENV
+          # Get base version from openlist_version file and add timestamp
+          BASE_VERSION=$(cat openlist_version)
+          # Generate timestamp in format YYMMDDHH (精确到小时)
+          TIMESTAMP=$(date +%y%m%d%H)
+          # Combine version with timestamp for artifact naming
+          echo "ver_name=${BASE_VERSION}.${TIMESTAMP}" >> $GITHUB_ENV
 
       - name: Upload iOS App To Artifact
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: "OpenListFlutter-iOS-v${{ env.ver_name }}"
+          name: "OpenListFlutter-iOS-${{ env.ver_name }}"
           path: "${{ env.output }}/OpenListFlutter.ipa"
