@@ -114,38 +114,7 @@ class MyHomePage extends StatelessWidget {
                     label: S.current.appName,
                   ),
                   NavigationDestination(
-                    icon: Obx(() {
-                      int activeCount = DownloadManager.activeTasks.length;
-                      return Stack(
-                        children: [
-                          const Icon(Icons.download),
-                          if (activeCount > 0)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  color: Colors.red,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
-                                ),
-                                child: Text(
-                                  '$activeCount',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    }),
+                    icon: _buildDownloadIcon(),
                     label: '下载管理',
                   ),
                   NavigationDestination(
@@ -163,6 +132,41 @@ class MyHomePage extends StatelessWidget {
 
                   controller.setPageIndex(index);
                 })));
+  }
+
+  Widget _buildDownloadIcon() {
+    return Obx(() {
+      int activeCount = DownloadManager.activeTasks.length;
+      return Stack(
+        children: [
+          const Icon(Icons.download),
+          if (activeCount > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                constraints: const BoxConstraints(
+                  minWidth: 16,
+                  minHeight: 16,
+                ),
+                child: Text(
+                  '$activeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+        ],
+      );
+    });
   }
 }
 
