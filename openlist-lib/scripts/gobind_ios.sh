@@ -77,17 +77,33 @@ else
         PARENT_DIR=$(pwd)/..
         cd ..
         
-        # Add mobile bind packages to the module
-        echo "Adding mobile bind packages to module..."
-        go get golang.org/x/mobile/bind@latest
-        go get golang.org/x/mobile/bind/objc@latest
+        # Force update mobile packages to latest version
+        echo "Updating mobile packages to latest version..."
+        go mod edit -replace golang.org/x/mobile=golang.org/x/mobile@v0.0.0-20250711185624-d5bb5ecc55c0
+        go get golang.org/x/mobile@v0.0.0-20250711185624-d5bb5ecc55c0
+        go get golang.org/x/mobile/bind@v0.0.0-20250711185624-d5bb5ecc55c0
+        go get golang.org/x/mobile/bind/objc@v0.0.0-20250711185624-d5bb5ecc55c0
         
+        # Clean and rebuild everything
+        echo "Cleaning and rebuilding module cache..."
+        go clean -cache
+        go clean -modcache
         go mod tidy
         go mod download
         
-        # Verify bind packages are in module
+        # Verify bind packages are in module with correct version
         echo "Verifying bind packages in module:"
-        go list -m golang.org/x/mobile || echo "mobile module not found"
+        go list -m golang.org/x/mobile
+        
+        # Reinstall gomobile tools with the correct version
+        echo "Reinstalling gomobile tools with correct version..."
+        go install golang.org/x/mobile/cmd/gomobile@v0.0.0-20250711185624-d5bb5ecc55c0
+        go install golang.org/x/mobile/cmd/gobind@v0.0.0-20250711185624-d5bb5ecc55c0
+        
+        # Reinitialize gomobile
+        echo "Reinitializing gomobile..."
+        gomobile clean || true
+        gomobile init
         
         # Return to openlistlib but stay in module context
         cd openlistlib
