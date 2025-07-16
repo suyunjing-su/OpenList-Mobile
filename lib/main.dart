@@ -105,7 +105,7 @@ class MyHomePage extends StatelessWidget {
                     label: S.current.appName,
                   ),
                   NavigationDestination(
-                    icon: const Icon(Icons.arrow_downward),
+                    icon: _buildDownloadIcon(),
                     label: '下载管理',
                   ),
                   NavigationDestination(
@@ -123,6 +123,46 @@ class MyHomePage extends StatelessWidget {
 
                   controller.setPageIndex(index);
                 })));
+  }
+
+  Widget _buildDownloadIcon() {
+    return Obx(() {
+      int activeCount = DownloadManager.activeTasks.length;
+      
+      // 基础图标 - 使用可用的图标
+      Widget baseIcon = const Icon(Icons.get_app); // 尝试 get_app 图标
+      
+      if (activeCount > 0) {
+        // 有活跃下载时，显示简单的文字徽章
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            baseIcon,
+            Positioned(
+              right: -8,
+              top: -8,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$activeCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      } else {
+        return baseIcon;
+      }
+    });
   }
 }
 
