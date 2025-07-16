@@ -3,6 +3,9 @@ import 'package:openlist_flutter/pages/openlist/openlist.dart';
 import 'package:openlist_flutter/pages/app_update_dialog.dart';
 import 'package:openlist_flutter/pages/settings/settings.dart';
 import 'package:openlist_flutter/pages/web/web.dart';
+import 'package:openlist_flutter/pages/download_manager_page.dart';
+import 'package:openlist_flutter/utils/download_manager.dart';
+import 'package:openlist_flutter/utils/notification_manager.dart';
 import 'package:fade_indexed_stack/fade_indexed_stack.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +18,10 @@ import 'contant/native_bridge.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 初始化通知管理器
+  await NotificationManager.initialize();
+  
   // Android
   if (!kIsWeb &&
       kDebugMode &&
@@ -86,6 +93,7 @@ class MyHomePage extends StatelessWidget {
             children: [
               WebScreen(key: webGlobalKey),
               const OpenListScreen(),
+              const DownloadManagerPage(),
               const SettingsScreen()
             ],
           ),
@@ -104,6 +112,41 @@ class MyHomePage extends StatelessWidget {
                       height: 32,
                     ),
                     label: S.current.appName,
+                  ),
+                  NavigationDestination(
+                    icon: Obx(() {
+                      int activeCount = DownloadManager.activeTasks.length;
+                      return Stack(
+                        children: [
+                          const Icon(Icons.download),
+                          if (activeCount > 0)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$activeCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    }),
+                    label: '下载管理',
                   ),
                   NavigationDestination(
                     icon: const Icon(Icons.settings),

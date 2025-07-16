@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart' as getx;
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
+import 'notification_manager.dart';
 
 /// 下载任务状态
 enum DownloadStatus {
@@ -90,123 +91,14 @@ class DownloadManager {
   /// 获取所有下载任务
   static List<DownloadTask> get allTasks => [..._activeTasks.values, ..._completedTasks];
 
-  /// 直接下载文件到系统下载目录
-  static Future<bool> downloadFile({
-    required String url,
-    String? filename,
-    Function(int received, int total)? onProgress,
-    bool showStartNotification = true,
-    bool showCompleteNotification = true,
-  }) async {
-    try {
-      // 请求存储权限
-      if (Platform.isAndroid) {
-        // Android 11+ 需要管理外部存储权限
-        var storageStatus = await Permission.storage.status;
-        var manageStorageStatus = await Permission.manageExternalStorage.status;
-        
-        if (!storageStatus.isGranted) {
-          storageStatus = await Permission.storage.request();
-        }
-        
-        if (!manageStorageStatus.isGranted) {
-          manageStorageStatus = await Permission.manageExternalStorage.request();
-        }
-        
-        // 如果都没有权限，提示用户
-        if (!storageStatus.isGranted && !manageStorageStatus.isGranted) {
-          getx.Get.showSnackbar(getx.GetSnackBar(
-            message: '需要存储权限才能下载文件，请在设置中手动授权',
-            duration: const Duration(seconds: 5),
-            mainButton: TextButton(
-              onPressed: () {
-                openAppSettings();
-              },
-              child: const Text('去设置'),
-            ),
-          ));
-          return false;
-        }
-      }
-
-      // 获取下载目录并创建OpenList专用文件夹
-      Directory? downloadDir = await _getOpenListDownloadDirectory();
-
-      if (downloadDir == null) {
-        getx.Get.showSnackbar(const getx.GetSnackBar(
-          message: '无法获取下载目录',
-          duration: Duration(seconds: 3),
-        ));
-        return false;
-      }
-
-      // 确定文件名
-      String finalFilename = filename ?? _getFilenameFromUrl(url);
-      String filePath = '${downloadDir.path}/$finalFilename';
-
-      // 检查文件是否已存在，如果存在则添加序号
-      filePath = _getUniqueFilePath(filePath);
-
-      log('开始下载文件: $url');
-      log('保存路径: $filePath');
-
-      // 显示下载开始提示
-      if (showStartNotification) {
-        getx.Get.showSnackbar(getx.GetSnackBar(
-          message: '开始下载: $finalFilename',
-          duration: const Duration(seconds: 2),
-        ));
-      }
-
-      // 执行下载
-      await _dio.download(
-        url,
-        filePath,
-        onReceiveProgress: (received, total) {
-          if (onProgress != null) {
-            onProgress(received, total);
-          }
-          
-          // 显示下载进度
-          if (total > 0) {
-            double progress = received / total;
-            log('下载进度: ${(progress * 100).toStringAsFixed(1)}%');
-          }
-        },
-      );
-
-      // 下载完成提示
-      if (showCompleteNotification) {
-        getx.Get.showSnackbar(getx.GetSnackBar(
-          message: '下载完成: $finalFilename',
-          duration: const Duration(seconds: 3),
-          mainButton: TextButton(
-            onPressed: () {
-              _openFile(filePath);
-            },
-            child: const Text('打开'),
-          ),
-        ));
-      }
-
-      log('文件下载完成: $filePath');
-      return true;
-
-    } catch (e) {
-      log('下载失败: $e');
-      getx.Get.showSnackbar(getx.GetSnackBar(
-        message: '下载失败: ${e.toString()}',
-        duration: const Duration(seconds: 3),
-      ));
-      return false;
-    }
-  }
-
   /// 带进度条的下载（后台下载，不阻塞UI）
   static Future<bool> downloadFileWithProgress({
     required String url,
     String? filename,
   }) async {
+    // 初始化通知管理器
+    await NotificationManager.initialize();
+    
     // 生成任务ID
     String taskId = DateTime.now().millisecondsSinceEpoch.toString();
     
@@ -251,6 +143,9 @@ class DownloadManager {
       // 更新任务状态
       task.status = DownloadStatus.downloading;
       
+      // 显示初始通知
+      await NotificationManager.showDownloadProgressNotification();
+      
       // 执行下载
       await _dio.download(
         url,
@@ -265,6 +160,9 @@ class DownloadManager {
             task.progress = received / total;
           }
           
+          // 更新通知进度
+          NotificationManager.showDownloadProgressNotification();
+          
           log('下载进度: ${(task.progress * 100).toStringAsFixed(1)}%');
         },
       );
@@ -277,6 +175,9 @@ class DownloadManager {
       // 移动到已完成列表
       _activeTasks.remove(taskId);
       _completedTasks.insert(0, task); // 插入到开头，最新的在前面
+
+      // 显示单个文件完成通知
+      await NotificationManager.showSingleFileCompleteNotification(task);
 
       // 显示完成提示
       getx.Get.showSnackbar(getx.GetSnackBar(
@@ -317,6 +218,13 @@ class DownloadManager {
       // 移动到已完成列表
       _activeTasks.remove(taskId);
       _completedTasks.insert(0, task);
+      
+      // 更新通知状态
+      if (_activeTasks.isEmpty) {
+        await NotificationManager.cancelDownloadNotification();
+      } else {
+        await NotificationManager.showDownloadProgressNotification();
+      }
       
       return false;
     }
@@ -421,7 +329,7 @@ class DownloadManager {
       log('解析文件名失败: $e');
     }
     
-    // 如果无法从URL提取��件名，使用时间戳
+    // 如果无法从URL提取文件名，使用时间戳
     return 'download_${DateTime.now().millisecondsSinceEpoch}';
   }
 

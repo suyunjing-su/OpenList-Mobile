@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'download_manager.dart';
-import '../pages/download_manager_page.dart';
 
 /// 下载功能测试页面
 class DownloadTestPage extends StatelessWidget {
@@ -11,10 +10,10 @@ class DownloadTestPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('下载功能测试'),
+        title: const Text('下载功能测试'),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -22,7 +21,7 @@ class DownloadTestPage extends StatelessWidget {
               '测试直接下载功能',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 // 测试下载一个小文件
@@ -31,9 +30,9 @@ class DownloadTestPage extends StatelessWidget {
                   filename: 'test.json',
                 );
               },
-              child: Text('测试下载JSON文件'),
+              child: const Text('测试下载JSON文件'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () async {
                 // 测试下载图片
@@ -42,9 +41,9 @@ class DownloadTestPage extends StatelessWidget {
                   filename: 'test_image.png',
                 );
               },
-              child: Text('测试下载PNG图片'),
+              child: const Text('测试下载PNG图片'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () async {
                 // 测试下载较大文件
@@ -53,46 +52,50 @@ class DownloadTestPage extends StatelessWidget {
                   filename: 'large_test.bin',
                 );
               },
-              child: Text('测试下载大文件(1MB)'),
+              child: const Text('测试下载大文件(1MB)'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
-                // 打开下载管理页面
-                Get.to(() => DownloadManagerPage());
+                // 提示用户通过底部导航栏查看下载文件
+                Get.showSnackbar(const GetSnackBar(
+                  message: '请通过底部导航栏的"下载管理"查看下载文件',
+                  duration: Duration(seconds: 2),
+                ));
               },
-              child: Text('查看下载文件'),
+              child: const Text('查看下载文件'),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () async {
                 // 显示下载目录路径
                 String? path = await DownloadManager.getDownloadDirectoryPath();
                 Get.dialog(
                   AlertDialog(
-                    title: Text('下载目录'),
+                    title: const Text('下载目录'),
                     content: SelectableText(path ?? '获取失败'),
                     actions: [
                       TextButton(
                         onPressed: () => Get.back(),
-                        child: Text('确定'),
+                        child: const Text('确定'),
                       ),
                     ],
                   ),
                 );
               },
-              child: Text('查看下载目录'),
+              child: const Text('查看下载目录'),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text(
               '说明：',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Text(
               '• 文件将下载到系统下载目录\n'
-              '• 下载过程���会显示进度对话框\n'
+              '• 下载过程会显示进度通知\n'
               '• 下载完成后可以选择打开文件\n'
-              '• 如果文件名重复会自动添加序号',
+              '• 如果文件名重复会自动添加序号\n'
+              '• 请通过底部导航栏的"下载管理"查看下载文件',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -107,19 +110,19 @@ class DownloadTestHelper {
   static void showTestDialog(BuildContext context) {
     Get.dialog(
       AlertDialog(
-        title: Text('下载功能测试'),
-        content: Text('是否要打开下载测试页面？'),
+        title: const Text('下载功能测试'),
+        content: const Text('是否要打开下载测试页面？'),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: Text('取消'),
+            child: const Text('取消'),
           ),
           TextButton(
             onPressed: () {
               Get.back();
-              Get.to(() => DownloadTestPage());
+              Get.to(() => const DownloadTestPage());
             },
-            child: Text('确定'),
+            child: const Text('确定'),
           ),
         ],
       ),

@@ -1,7 +1,6 @@
 import 'package:openlist_flutter/contant/native_bridge.dart';
 import 'package:openlist_flutter/generated_api.dart';
 import 'package:openlist_flutter/pages/settings/preference_widgets.dart';
-import 'package:openlist_flutter/pages/download_manager_page.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -146,14 +145,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
           DividerPreference(title: S.of(context).uiSettings),
-          BasicPreference(
-            title: '下载管理',
-            subtitle: '查看和管理已下载的文件',
-            leading: const Icon(Icons.download),
-            onTap: () {
-              Get.to(() => const DownloadManagerPage());
-            },
-          ),
           SwitchPreference(
               icon: const Icon(Icons.pan_tool_alt_outlined),
               title: S.of(context).silentJumpApp,
