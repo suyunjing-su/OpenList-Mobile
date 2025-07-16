@@ -30,8 +30,8 @@ def gitCommits = Integer.parseInt('git rev-list HEAD --count'.execute().text.tri
 
 android {
     namespace "com.github.openlistteam.openlistflutter"
-    compileSdkVersion 34
-    ndkVersion "25.1.8937393"
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     signingConfigs {
         release {
