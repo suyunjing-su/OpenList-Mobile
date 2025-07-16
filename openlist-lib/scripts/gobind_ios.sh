@@ -104,20 +104,84 @@ if [ -f ../go.mod ]; then
         fi
     fi
     
-    echo "Listing generated files:"
-    ls -la *.xcframework 2>/dev/null || echo "No .xcframework files found"
+    echo "Listing generated files in current directory:"
+    ls -la *.xcframework 2>/dev/null || echo "No .xcframework files found in current directory"
     
-    echo "Moving xcframework to ios/Frameworks"
-    mkdir -p ios/Frameworks
+    # Find the Flutter project root by looking for pubspec.yaml
+    echo "Locating Flutter project root..."
+    FLUTTER_ROOT=""
+    CURRENT_DIR=$(pwd)
+    
+    # Check various possible locations for pubspec.yaml
+    if [ -f "pubspec.yaml" ]; then
+        FLUTTER_ROOT="."
+        echo "Found Flutter project root at current directory"
+    elif [ -f "../pubspec.yaml" ]; then
+        FLUTTER_ROOT="../"
+        echo "Found Flutter project root at ../"
+    elif [ -f "../../pubspec.yaml" ]; then
+        FLUTTER_ROOT="../../"
+        echo "Found Flutter project root at ../../"
+    elif [ -f "../../../pubspec.yaml" ]; then
+        FLUTTER_ROOT="../../../"
+        echo "Found Flutter project root at ../../../"
+    else
+        # Try to find it by searching upwards
+        SEARCH_DIR="$CURRENT_DIR"
+        for i in {1..5}; do
+            SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+            if [ -f "$SEARCH_DIR/pubspec.yaml" ]; then
+                FLUTTER_ROOT=$(realpath --relative-to="$CURRENT_DIR" "$SEARCH_DIR")
+                echo "Found Flutter project root at: $FLUTTER_ROOT"
+                break
+            fi
+        done
+        
+        if [ -z "$FLUTTER_ROOT" ]; then
+            echo "Warning: Cannot find Flutter project root (pubspec.yaml), using default relative path"
+            FLUTTER_ROOT="../../"
+        fi
+    fi
+    
+    echo "Using Flutter project root: $FLUTTER_ROOT"
+    echo "Creating iOS Frameworks directory at: ${FLUTTER_ROOT}ios/Frameworks"
+    mkdir -p "${FLUTTER_ROOT}ios/Frameworks"
     
     # Check if xcframework files exist before moving
     if ls *.xcframework 1> /dev/null 2>&1; then
-        mv -f ./*.xcframework ios/Frameworks/
+        echo "Moving xcframework files to Flutter iOS Frameworks directory..."
+        
+        # Copy files to Flutter project
+        for framework in *.xcframework; do
+            echo "Moving $framework to ${FLUTTER_ROOT}ios/Frameworks/"
+            mv "$framework" "${FLUTTER_ROOT}ios/Frameworks/"
+        done
+        
         echo "iOS framework build completed successfully"
-        echo "Files in ios/Frameworks:"
-        ls -la ios/Frameworks/
+        echo "Files in Flutter iOS Frameworks directory:"
+        ls -la "${FLUTTER_ROOT}ios/Frameworks/"
+        
+        # Verify the files are in the expected location
+        EXPECTED_PATH="${FLUTTER_ROOT}ios/Frameworks"
+        if [ -d "$EXPECTED_PATH" ] && [ "$(ls -A "$EXPECTED_PATH")" ]; then
+            echo "✅ Framework files successfully placed in: $EXPECTED_PATH"
+            echo "Absolute path: $(cd "$EXPECTED_PATH" && pwd)"
+        else
+            echo "❌ Warning: Framework files may not be in the expected location"
+        fi
+        
+        # Also create a local ios/Frameworks for backward compatibility
+        mkdir -p ios/Frameworks
+        if [ -d "${FLUTTER_ROOT}ios/Frameworks" ]; then
+            cp -f "${FLUTTER_ROOT}ios/Frameworks/"*.xcframework ios/Frameworks/ 2>/dev/null || true
+            echo "Local backup copy created in: $(pwd)/ios/Frameworks/"
+            ls -la ios/Frameworks/ 2>/dev/null || echo "No local backup copy created"
+        fi
     else
         echo "Warning: No .xcframework files were generated"
+        echo "Checking if files were generated with different names..."
+        ls -la *.framework 2>/dev/null || echo "No .framework files found either"
+        ls -la openlistlib* 2>/dev/null || echo "No openlistlib files found"
         exit 1
     fi
 else
