@@ -122,6 +122,7 @@ else
         # Build for iOS with more verbose output
         echo "Starting iOS build from module root..."
         echo "CGO_ENABLED: $CGO_ENABLED"
+        gomobile init
         gomobile bind -ldflags "-s -w" -v -target="ios" ./openlistlib 2>&1 | tee ios_build.log || {
             echo "Error: gomobile bind failed"
             echo "Build log:"
