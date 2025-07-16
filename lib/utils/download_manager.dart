@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:get/get.dart' as getx;
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 
 class DownloadManager {
   static final Dio _dio = Dio();
@@ -64,7 +65,7 @@ class DownloadManager {
       // 检查文件是否已存在，如果存在则添加序号
       filePath = _getUniqueFilePath(filePath);
 
-      log('开始下载文件: $url');
+      log('开��下载文件: $url');
       log('保存路径: $filePath');
 
       // 显示下载开始提示
@@ -212,40 +213,103 @@ class DownloadManager {
   }
 
   /// 尝试打开文件
-  static void _openFile(String filePath) {
+  static Future<void> _openFile(String filePath) async {
     try {
-      if (Platform.isAndroid) {
-        // 在Android上，使用Intent打开文件
-        Process.run('am', [
-          'start',
-          '-a', 'android.intent.action.VIEW',
-          '-d', 'file://$filePath',
-          '-t', _getMimeType(filePath),
-        ]);
-      } else if (Platform.isIOS) {
-        // iOS上显示文件位置提示，因为iOS应用沙盒限制
-        getx.Get.showSnackbar(getx.GetSnackBar(
-          message: '文件已保存到应用文档目录',
-          duration: const Duration(seconds: 3),
-          mainButton: TextButton(
-            onPressed: () {
-              // 可以在这里添加分享文件的功能
-              _shareFile(filePath);
-            },
-            child: const Text('分享'),
-          ),
-        ));
-      } else {
-        // 其他平台尝试使用系统默认程序打开
-        Process.run('open', [filePath]);
+      log('尝试打开文件: $filePath');
+      
+      // 使用 open_filex 插件打开文件
+      final result = await OpenFilex.open(filePath);
+      
+      log('打开文件结果: ${result.type} - ${result.message}');
+      
+      // 根据结果显示相应的提示
+      switch (result.type) {
+        case ResultType.done:
+          // 文件成功打开，不需要额外提示
+          break;
+        case ResultType.noAppToOpen:
+          getx.Get.showSnackbar(getx.GetSnackBar(
+            message: '没有找到可以打开此文件的应用',
+            duration: const Duration(seconds: 3),
+            mainButton: TextButton(
+              onPressed: () {
+                _showFileLocation(filePath);
+              },
+              child: const Text('查看位置'),
+            ),
+          ));
+          break;
+        case ResultType.fileNotFound:
+          getx.Get.showSnackbar(const getx.GetSnackBar(
+            message: '文件不存在或已被删除',
+            duration: Duration(seconds: 3),
+          ));
+          break;
+        case ResultType.permissionDenied:
+          getx.Get.showSnackbar(const getx.GetSnackBar(
+            message: '没有权限打开此文件',
+            duration: Duration(seconds: 3),
+          ));
+          break;
+        case ResultType.error:
+        default:
+          getx.Get.showSnackbar(getx.GetSnackBar(
+            message: '打开文件失败: ${result.message}',
+            duration: const Duration(seconds: 3),
+            mainButton: TextButton(
+              onPressed: () {
+                _showFileLocation(filePath);
+              },
+              child: const Text('查看位置'),
+            ),
+          ));
+          break;
       }
     } catch (e) {
-      log('打开文件失败: $e');
+      log('打开文件异常: $e');
       getx.Get.showSnackbar(getx.GetSnackBar(
-        message: '无法打开文件，请手动查找: ${filePath.split('/').last}',
+        message: '打开文件失败: ${e.toString()}',
         duration: const Duration(seconds: 3),
+        mainButton: TextButton(
+          onPressed: () {
+            _showFileLocation(filePath);
+          },
+          child: const Text('查看位置'),
+        ),
       ));
     }
+  }
+
+  /// 显示文件位置信息
+  static void _showFileLocation(String filePath) {
+    getx.Get.dialog(
+      AlertDialog(
+        title: const Text('文件位置'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('文件已保存到:'),
+            const SizedBox(height: 8),
+            SelectableText(
+              filePath,
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '您可以使用文件管理器找到此文件，或者尝试安装相应的应用来打开它。',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => getx.Get.back(),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 分享文件（iOS专用）
