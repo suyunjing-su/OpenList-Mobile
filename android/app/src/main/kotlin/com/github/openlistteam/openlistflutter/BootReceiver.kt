@@ -1,9 +1,9 @@
-package com.github.openlistteam.openlistflutter
+package com.openlist.mobile
 
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.github.openlistteam.openlistflutter.config.AppConfig
+import com.openlist.mobile.config.AppConfig
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

@@ -52,7 +52,7 @@
 <array>
     <dict>
         <key>CFBundleURLName</key>
-        <string>com.github.openlistteam.openlistFlutter</string>
+        <string>com.openlist.mobile</string>
         <key>CFBundleURLSchemes</key>
         <array>
             <string>openlist</string>

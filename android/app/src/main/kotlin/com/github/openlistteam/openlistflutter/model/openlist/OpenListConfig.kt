@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter.model.openlist
+package com.openlist.mobile.model.openlist
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter.constant
+package com.openlist.mobile.constant
 
 import androidx.annotation.IntDef
 

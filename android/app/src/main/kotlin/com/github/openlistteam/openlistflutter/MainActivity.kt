@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter
+package com.openlist.mobile
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,11 +7,11 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.util.Log
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.github.openlistteam.openlistflutter.bridge.AndroidBridge
-import com.github.openlistteam.openlistflutter.bridge.AppConfigBridge
-import com.github.openlistteam.openlistflutter.bridge.CommonBridge
-import com.github.openlistteam.openlistflutter.model.ShortCuts
-import com.github.openlistteam.openlistflutter.model.openlist.Logger
+import com.openlist.mobile.bridge.AndroidBridge
+import com.openlist.mobile.bridge.AppConfigBridge
+import com.openlist.mobile.bridge.CommonBridge
+import com.openlist.mobile.model.ShortCuts
+import com.openlist.mobile.model.openlist.Logger
 import com.github.openlistteam.pigeon.GeneratedApi
 import com.github.openlistteam.pigeon.GeneratedApi.VoidResult
 import io.flutter.embedding.android.FlutterActivity

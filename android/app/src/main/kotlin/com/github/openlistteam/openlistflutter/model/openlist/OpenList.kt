@@ -1,15 +1,15 @@
-package com.github.openlistteam.openlistflutter.model.openlist
+package com.openlist.mobile.model.openlist
 
 import openlistlib.Openlistlib
 import openlistlib.Event
 import openlistlib.LogCallback
 import android.annotation.SuppressLint
 import android.util.Log
-import com.github.openlistteam.openlistflutter.R
-import com.github.openlistteam.openlistflutter.app
-import com.github.openlistteam.openlistflutter.config.AppConfig
-import com.github.openlistteam.openlistflutter.constant.LogLevel
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.longToast
+import com.openlist.mobile.R
+import com.openlist.mobile.app
+import com.openlist.mobile.config.AppConfig
+import com.openlist.mobile.constant.LogLevel
+import com.openlist.mobile.utils.ToastUtils.longToast
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale

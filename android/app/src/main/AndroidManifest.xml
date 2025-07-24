@@ -28,7 +28,7 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
-        android:name="com.github.openlistteam.openlistflutter.App"
+        android:name="com.openlist.mobile.App"
         android:icon="@mipmap/ic_launcher"
 
         android:label="OpenList"

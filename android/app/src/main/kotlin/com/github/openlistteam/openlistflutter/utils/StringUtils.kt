@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter.utils
+package com.openlist.mobile.utils
 
 object StringUtils {
     private fun paramsParseInternal(params: String): HashMap<String, String> {

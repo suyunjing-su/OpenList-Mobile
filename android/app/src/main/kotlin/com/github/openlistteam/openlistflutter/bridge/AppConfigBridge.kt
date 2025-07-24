@@ -1,6 +1,6 @@
-package com.github.openlistteam.openlistflutter.bridge
+package com.openlist.mobile.bridge
 
-import com.github.openlistteam.openlistflutter.config.AppConfig
+import com.openlist.mobile.config.AppConfig
 import com.github.openlistteam.pigeon.GeneratedApi
 
 

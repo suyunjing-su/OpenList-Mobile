@@ -1,12 +1,12 @@
-package com.github.openlistteam.openlistflutter.model
+package com.openlist.mobile.model
 
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import com.github.openlistteam.openlistflutter.R
-import com.github.openlistteam.openlistflutter.SwitchServerActivity
+import com.openlist.mobile.R
+import com.openlist.mobile.SwitchServerActivity
 
 
 object ShortCuts {

@@ -1,9 +1,9 @@
-package com.github.openlistteam.openlistflutter
+package com.openlist.mobile
 
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.toast
+import com.openlist.mobile.utils.ToastUtils.toast
 
 class SwitchServerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {

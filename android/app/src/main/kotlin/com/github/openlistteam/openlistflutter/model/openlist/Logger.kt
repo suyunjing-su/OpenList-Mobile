@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter.model.openlist
+package com.openlist.mobile.model.openlist
 
 object Logger {
     private var listeners = mutableListOf<Listener>()

@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter.utils
+package com.openlist.mobile.utils
 
 import java.io.File
 import java.io.InputStream

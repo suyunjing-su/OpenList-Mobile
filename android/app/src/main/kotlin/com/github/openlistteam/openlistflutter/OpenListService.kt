@@ -1,4 +1,4 @@
-package com.github.openlistteam.openlistflutter
+package com.openlist.mobile
 
 import openlistlib.Openlistlib
 import android.annotation.SuppressLint
@@ -15,11 +15,11 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import com.github.openlistteam.openlistflutter.config.AppConfig
-import com.github.openlistteam.openlistflutter.model.openlist.OpenList
-import com.github.openlistteam.openlistflutter.utils.AndroidUtils.registerReceiverCompat
-import com.github.openlistteam.openlistflutter.utils.ClipboardUtils
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.toast
+import com.openlist.mobile.config.AppConfig
+import com.openlist.mobile.model.openlist.OpenList
+import com.openlist.mobile.utils.AndroidUtils.registerReceiverCompat
+import com.openlist.mobile.utils.ClipboardUtils
+import com.openlist.mobile.utils.ToastUtils.toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

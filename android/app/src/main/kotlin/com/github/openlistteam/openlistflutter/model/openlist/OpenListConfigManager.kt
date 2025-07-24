@@ -1,10 +1,10 @@
-package com.github.openlistteam.openlistflutter.model.openlist
+package com.openlist.mobile.model.openlist
 
 import android.os.FileObserver
 import android.util.Log
-import com.github.openlistteam.openlistflutter.app
-import com.github.openlistteam.openlistflutter.constant.AppConst
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.longToast
+import com.openlist.mobile.app
+import com.openlist.mobile.constant.AppConst
+import com.openlist.mobile.utils.ToastUtils.longToast
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.coroutineScope

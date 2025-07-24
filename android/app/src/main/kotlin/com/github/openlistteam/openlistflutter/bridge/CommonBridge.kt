@@ -1,11 +1,11 @@
-package com.github.openlistteam.openlistflutter.bridge
+package com.openlist.mobile.bridge
 
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.github.openlistteam.openlistflutter.BuildConfig
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.longToast
-import com.github.openlistteam.openlistflutter.utils.ToastUtils.toast
+import com.openlist.mobile.BuildConfig
+import com.openlist.mobile.utils.ToastUtils.longToast
+import com.openlist.mobile.utils.ToastUtils.toast
 import com.github.openlistteam.pigeon.GeneratedApi
 
 class CommonBridge(private val context: Context) : GeneratedApi.NativeCommon {

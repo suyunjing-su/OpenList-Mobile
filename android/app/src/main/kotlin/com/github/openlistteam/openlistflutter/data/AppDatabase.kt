@@ -1,13 +1,13 @@
 /*
-package com.github.openlistteam.openlistflutter.data
+package com.openlist.mobile.data
 
 import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.github.openlistteam.openlistandroid.data.dao.ServerLogDao
-import com.github.openlistteam.openlistflutter.data.entities.ServerLog
-import com.github.openlistteam.openlistflutter.App.Companion.app
+import com.openlist.mobile.data.entities.ServerLog
+import com.openlist.mobile.App.Companion.app
 
 val appDb by lazy { AppDatabase.create() }
 
