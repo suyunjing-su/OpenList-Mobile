@@ -92,20 +92,6 @@ android {
         }
     }
 
-    // 使用更简单的方法来自定义文件名，避免兼容性问题
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            // 使用更安全的方法获取 ABI 信息
-            def abiName = output.getFilter("ABI")
-            def fileName = "OpenListF-v${variant.versionName}"
-            if (abiName != null && !abiName.isEmpty()) {
-                fileName += "_${abiName}"
-            }
-            fileName += ".apk"
-            outputFileName = fileName
-        }
-    }
-
 //    kotlin {
 //        jvmToolchain  = 17
 //    }
@@ -126,6 +112,21 @@ android {
 //                abiFilters "arm64-v8a"
 //                abiFilters "x86"
             }
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            def abi = output.filters.find { it.filterType.name() == "ABI" }?.identifier
+            def versionName = variant.versionName.get()
+            def fileName = "OpenListF-v${versionName}"
+            if (abi != null && !abi.isEmpty()) {
+                fileName += "_${abi}"
+            }
+            fileName += ".apk"
+            output.outputFileName.set(fileName)
         }
     }
 }
