@@ -117,16 +117,29 @@ android {
 }
 
 androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            def abi = output.filters.find { it.filterType.name() == "ABI" }?.identifier
-            def versionName = variant.versionName.get()
-            def fileName = "OpenListF-v${versionName}"
-            if (abi != null && !abi.isEmpty()) {
-                fileName += "_${abi}"
+    onVariants(selector().all()) { variant ->
+        def variantNameCap = variant.name.capitalize()
+        def copyTask = tasks.register("copy${variantNameCap}Apk", Copy) {
+            from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
+            into(layout.buildDirectory.dir("renamed-apks"))
+            rename { fileName ->
+                def abi = "" // 如果你需要，可以在这里动态加入 ABI
+                def versionName = variant.versionName.get()
+                return "OpenListF-v${versionName}${abi ? "_$abi" : ''}.apk"
             }
-            fileName += ".apk"
-            output.outputFileName.set(fileName)
+        }
+        
+        // 使用 afterEvaluate 来确保任务存在后再配置依赖关系
+        project.afterEvaluate {
+            def assembleTaskName = "assemble${variantNameCap}"
+            if (tasks.findByName(assembleTaskName)) {
+                tasks.named(assembleTaskName).configure {
+                    finalizedBy copyTask
+                }
+                copyTask.configure {
+                    dependsOn assembleTaskName
+                }
+            }
         }
     }
 }
