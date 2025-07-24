@@ -3,13 +3,16 @@ name: Release
 on:
   push:
     branches:
-      - "master"
+      - "main"
     paths:
       - "CHANGELOG.md"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
- android:
+  android:
     runs-on: ubuntu-latest
     env:
       output: "${{ github.workspace }}/build/app/outputs/apk/release"
@@ -71,7 +74,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.6'
+          flutter-version: '3.32.7'
       - run: flutter build apk --split-per-abi --release
 
       - name: Upload missing_rules.txt
@@ -85,6 +88,131 @@ jobs:
         run: |
           echo "ver_name=$(grep -m 1 'versionName' ${{ env.output }}/output-metadata.json | cut -d\" -f4)" >> $GITHUB_ENV
 
+      - name: Upload Android APKs for Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: "android-release-files"
+          path: "${{ env.output }}/*.apk"
+
+  ios:
+    runs-on: macos-latest
+    env:
+      output: "${{ github.workspace }}/build/ios/ipa"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: 1.22
+
+      - name: Download OpenList Source Code
+        run: |
+          cd $GITHUB_WORKSPACE/openlist-lib/scripts
+          chmod +x *.sh
+          echo "Initializing OpenList..."
+          ./init_openlist.sh
+          echo "Initializing Web assets for iOS..."
+          ./init_web_ios.sh
+
+      - name: Verify Go Installation
+        run: |
+          which go
+          go version
+          echo "GOPATH: $GOPATH"
+          echo "GOROOT: $GOROOT"
+
+      - name: Build OpenList for iOS
+        run: |
+          cd $GITHUB_WORKSPACE/openlist-lib/scripts
+          chmod +x *.sh
+          echo "Initializing gomobile for iOS..."
+          ./init_gomobile.sh
+          echo "Checking Go mobile installation..."
+          go list -m golang.org/x/mobile 2>/dev/null || echo "mobile module not found"
+          which gomobile || echo "gomobile not in PATH"
+          which gobind || echo "gobind not in PATH"
+          echo "Checking openlistlib directory..."
+          ls -la ../openlistlib/ || echo "openlistlib directory not found"
+          echo "Checking for problematic imports..."
+          if [ -d ../openlistlib ]; then
+            echo "Go files in openlistlib:"
+            ls -la ../openlistlib/*.go 2>/dev/null || echo "No Go files found"
+            echo "Checking imports:"
+            grep -r "golang.org/x/mobile/bind" ../openlistlib/ 2>/dev/null || echo "No bind imports found"
+          fi
+          echo "Building iOS framework..."
+          ./gobind_ios.sh
+
+      - name: Upload iOS Framework
+        uses: actions/upload-artifact@v4
+        with:
+          name: "OpenList-iOS"
+          path: "${{ github.workspace }}/ios/Frameworks/*.xcframework"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.7'
+
+      - name: Build iOS App
+        run: |
+          flutter build ios --release --no-codesign
+
+      - name: Create IPA
+        run: |
+          mkdir -p ${{ env.output }}
+          cd build/ios/iphoneos
+          mkdir Payload
+          cp -r Runner.app Payload/
+          zip -r ${{ env.output }}/OpenListFlutter.ipa Payload/
+
+      - name: Get App Version
+        run: |
+          # Get base version from openlist_version file and add timestamp
+          BASE_VERSION=$(cat openlist_version)
+          # Generate timestamp in format YYMMDDHH (精确到小时)
+          TIMESTAMP=$(date +%y%m%d%H)
+          # Combine version with timestamp for artifact naming
+          echo "ver_name=${BASE_VERSION}.${TIMESTAMP}" >> $GITHUB_ENV
+
+      - name: Upload iOS IPA for Release
+        uses: actions/upload-artifact@v4
+        with:
+          name: "ios-release-files"
+          path: "${{ env.output }}/OpenListFlutter.ipa"
+
+  release:
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release-files
+          path: release_files/
+
+      - name: Download iOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-release-files
+          path: release_files/
+
+      - name: Get Version Name
+        run: |
+          # Use the same version logic as Android build
+          if [ -f "openlist_version" ]; then
+            BASE_VERSION=$(cat openlist_version)
+            TIMESTAMP=$(date +%y%m%d%H)
+            echo "ver_name=${BASE_VERSION}.${TIMESTAMP}" >> $GITHUB_ENV
+          else
+            echo "ver_name=v1.0.0" >> $GITHUB_ENV
+          fi
+
       - uses: softprops/action-gh-release@v1
         with:
           name: ${{ env.ver_name }}
@@ -92,6 +220,6 @@ jobs:
           body_path: ${{ github.workspace }}/CHANGELOG.md
           draft: false
           prerelease: false
-          files: ${{ env.output }}/*.apk
+          files: release_files/*
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
