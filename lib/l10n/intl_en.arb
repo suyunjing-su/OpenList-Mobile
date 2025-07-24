@@ -379,5 +379,73 @@
         "type": "String"
       }
     }
-  }
+  },
+  "showInFileManager": "Show in file manager",
+  "fileSize": "Size: {size}",
+  "@fileSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "fileTime": "Time: {time}",
+  "@fileTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "ok": "OK",
+  "openFileManager": "Open File Manager",
+  "fileManagerOpened": "File manager opened",
+  "openFileManagerFailed": "Failed to open file manager: {error}",
+  "@openFileManagerFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadDirectoryOpened": "Download directory opened",
+  "openDownloadDirectoryFailed": "Failed to open download directory: {error}",
+  "@openDownloadDirectoryFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadDirectoryPathUnknown": "Download directory path unknown",
+  "cannotGetDownloadDirectoryError": "Cannot get download directory",
+  "startDownloadFile": "Start download: {filename}",
+  "@startDownloadFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadCompleteFile": "Download complete: {filename}",
+  "@downloadCompleteFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadFailedFile": "Download failed: {filename}",
+  "@downloadFailedFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "userCancelledDownloadError": "User cancelled download",
+  "cannotInstallApkNeedPermission": "Cannot install APK file, you may need to enable \\\"Install unknown apps\\\" in settings",
+  "noPermissionToInstallApkFile": "No permission to install APK file, please enable install permission in settings",
+  "preparingDownloadStatus": "Preparing download...",
+  "downloadCancelledText": "Download cancelled"
 }

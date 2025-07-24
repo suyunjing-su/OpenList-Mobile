@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:open_file_manager/open_file_manager.dart';
 import '../utils/download_manager.dart';
 import '../generated/l10n.dart';
 
@@ -333,6 +334,11 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
                         _openFile(task.filePath);
                       }
                       break;
+                    case 'open_folder':
+                      if (task.status == DownloadStatus.completed) {
+                        _openFileManager(task.filePath);
+                      }
+                      break;
                     case 'delete_record':
                       _confirmDeleteTaskRecord(task);
                       break;
@@ -352,6 +358,17 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
                           const Icon(Icons.open_in_new),
                           const SizedBox(width: 8),
                           Text(S.of(context).openFile),
+                        ],
+                      ),
+                    ),
+                  if (task.status == DownloadStatus.completed)
+                    PopupMenuItem(
+                      value: 'open_folder',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.folder_open),
+                          const SizedBox(width: 8),
+                          Text(S.of(context).showInFileManager),
                         ],
                       ),
                     ),
@@ -406,8 +423,8 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('大小: ${_formatFileSize(stat.size)}'),
-                    Text('时间: ${_formatDateTime(stat.modified)}'),
+                    Text(S.of(context).fileSize(_formatFileSize(stat.size))),
+                    Text(S.of(context).fileTime(_formatDateTime(stat.modified))),
                   ],
                 ),
                 trailing: const Icon(Icons.more_vert),
@@ -424,12 +441,12 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('取消下载'),
-        content: Text('确定要取消下载 "${task.filename}" 吗？'),
+        title: Text(S.of(context).cancelDownload),
+        content: Text(S.of(context).confirmCancelDownload(task.filename)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('继续下载'),
+            child: Text(S.of(context).continueDownload),
           ),
           TextButton(
             onPressed: () {
@@ -437,7 +454,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
               DownloadManager.cancelDownload(task.id);
               setState(() {});
             },
-            child: const Text('取消下载', style: TextStyle(color: Colors.red)),
+            child: Text(S.of(context).cancelDownload, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -448,12 +465,12 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除记录'),
-        content: Text('确定要删除 "${task.filename}" 的下载记录吗？'),
+        title: Text(S.of(context).deleteRecord),
+        content: Text(S.of(context).confirmDeleteRecord(task.filename)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(S.of(context).cancel),
           ),
           TextButton(
             onPressed: () {
@@ -461,7 +478,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
               DownloadManager.removeTask(task.id);
               setState(() {});
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text(S.of(context).delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -487,27 +504,35 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.open_in_new),
-              title: const Text('打开文件'),
+              title: Text(S.of(context).openFile),
               onTap: () async {
                 Navigator.pop(context);
                 await _openFile(file.path);
               },
             ),
             ListTile(
+              leading: const Icon(Icons.folder_open),
+              title: Text(S.of(context).showInFileManager),
+              onTap: () {
+                Navigator.pop(context);
+                _openFileManager(file.path);
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.share),
-              title: const Text('分享文件'),
+              title: Text(S.of(context).shareFile),
               onTap: () {
                 Navigator.pop(context);
                 // 这里可以添加分享功能
-                Get.showSnackbar(const GetSnackBar(
-                  message: '分享功能待实现',
-                  duration: Duration(seconds: 2),
+                Get.showSnackbar(GetSnackBar(
+                  message: S.of(context).shareFeatureNotImplemented,
+                  duration: const Duration(seconds: 2),
                 ));
               },
             ),
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text('文件信息'),
+              title: Text(S.of(context).fileInfo),
               onTap: () {
                 Navigator.pop(context);
                 _showFileInfo(file);
@@ -515,7 +540,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('删除文件', style: TextStyle(color: Colors.red)),
+              title: Text(S.of(context).deleteFile, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(context);
                 _confirmDeleteFile(filename);
@@ -534,24 +559,24 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('文件信息'),
+        title: Text(S.of(context).fileInfo),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('文件名: $filename'),
+            Text('${S.of(context).fileName}: $filename'),
             const SizedBox(height: 8),
-            Text('大小: ${_formatFileSize(stat.size)}'),
+            Text('${S.of(context).size}: ${_formatFileSize(stat.size)}'),
             const SizedBox(height: 8),
-            Text('修改时间: ${_formatDateTime(stat.modified)}'),
+            Text('${S.of(context).modifiedTime}: ${_formatDateTime(stat.modified)}'),
             const SizedBox(height: 8),
-            Text('路径: ${file.path}'),
+            Text('${S.of(context).filePath}: ${file.path}'),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
+            child: Text(S.of(context).ok),
           ),
         ],
       ),
@@ -562,31 +587,31 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认删除'),
-        content: Text('确定要删除文件 "$filename" 吗？此操作不可撤销。'),
+        title: Text(S.of(context).confirmDelete),
+        content: Text(S.of(context).confirmDeleteFile(filename)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(S.of(context).cancel),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               bool success = await DownloadManager.deleteFile(filename);
               if (success) {
-                Get.showSnackbar(const GetSnackBar(
-                  message: '文件已删除',
-                  duration: Duration(seconds: 2),
+                Get.showSnackbar(GetSnackBar(
+                  message: S.of(context).fileDeleted,
+                  duration: const Duration(seconds: 2),
                 ));
                 _loadDownloadedFiles(); // 刷新列表
               } else {
-                Get.showSnackbar(const GetSnackBar(
-                  message: '删除失败',
-                  duration: Duration(seconds: 2),
+                Get.showSnackbar(GetSnackBar(
+                  message: S.of(context).deleteFailed,
+                  duration: const Duration(seconds: 2),
                 ));
               }
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text(S.of(context).delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -597,12 +622,12 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('确认清空'),
-        content: const Text('确定要清空所有下载文件吗？此操作不可撤销。'),
+        title: Text(S.of(context).confirmClear),
+        content: Text(S.of(context).confirmClearAllFiles),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(S.of(context).cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -610,20 +635,20 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
               bool success = await DownloadManager.clearDownloadDirectory();
               if (success) {
                 DownloadManager.clearCompletedTasks();
-                Get.showSnackbar(const GetSnackBar(
-                  message: '已清空下载目录',
-                  duration: Duration(seconds: 2),
+                Get.showSnackbar(GetSnackBar(
+                  message: S.of(context).cleared,
+                  duration: const Duration(seconds: 2),
                 ));
                 _loadDownloadedFiles(); // 刷新列表
                 setState(() {});
               } else {
-                Get.showSnackbar(const GetSnackBar(
-                  message: '清空失败',
-                  duration: Duration(seconds: 2),
+                Get.showSnackbar(GetSnackBar(
+                  message: S.of(context).clearFailed,
+                  duration: const Duration(seconds: 2),
                 ));
               }
             },
-            child: const Text('清空', style: TextStyle(color: Colors.red)),
+            child: Text(S.of(context).clear, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -641,51 +666,97 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
           break;
         case ResultType.noAppToOpen:
           Get.showSnackbar(GetSnackBar(
-            message: '没有找到可以打开此文件的应用',
+            message: S.of(context).noAppToOpenFile,
             duration: const Duration(seconds: 3),
             mainButton: TextButton(
               onPressed: () {
                 _showFileLocation(filePath);
               },
-              child: const Text('查看位置'),
+              child: Text(S.of(context).viewLocation),
             ),
           ));
           break;
         case ResultType.fileNotFound:
-          Get.showSnackbar(const GetSnackBar(
-            message: '文件不存在或已被删除',
-            duration: Duration(seconds: 3),
+          Get.showSnackbar(GetSnackBar(
+            message: S.of(context).fileNotFound,
+            duration: const Duration(seconds: 3),
           ));
           break;
         case ResultType.permissionDenied:
-          Get.showSnackbar(const GetSnackBar(
-            message: '没有权限打开此文件',
-            duration: Duration(seconds: 3),
+          Get.showSnackbar(GetSnackBar(
+            message: S.of(context).noPermissionToOpenFile,
+            duration: const Duration(seconds: 3),
           ));
           break;
         case ResultType.error:
           Get.showSnackbar(GetSnackBar(
-            message: '打开文件失败: ${result.message}',
+            message: S.of(context).openFileFailed(result.message ?? ''),
             duration: const Duration(seconds: 3),
             mainButton: TextButton(
               onPressed: () {
                 _showFileLocation(filePath);
               },
-              child: const Text('查看位置'),
+              child: Text(S.of(context).viewLocation),
             ),
           ));
           break;
       }
     } catch (e) {
       Get.showSnackbar(GetSnackBar(
-        message: '打开文件失败: ${e.toString()}',
+        message: S.of(context).openFileFailed(e.toString()),
         duration: const Duration(seconds: 3),
         mainButton: TextButton(
           onPressed: () {
             _showFileLocation(filePath);
           },
-          child: const Text('查看位置'),
+          child: Text(S.of(context).viewLocation),
         ),
+      ));
+    }
+  }
+
+  /// 打开文件管理器并跳转到指定文件位置
+  Future<void> _openFileManager(String filePath) async {
+    try {
+      // 获取文件所在目录
+      String directoryPath = filePath.substring(0, filePath.lastIndexOf('/'));
+      
+      // 尝试打开文件管理器并定位到文件
+      await OpenFileManager.open(directoryPath);
+      
+      Get.showSnackbar(GetSnackBar(
+        message: S.of(context).fileManagerOpened,
+        duration: const Duration(seconds: 2),
+      ));
+    } catch (e) {
+      print('打开文件管理器失败: $e');
+      Get.showSnackbar(GetSnackBar(
+        message: S.of(context).openFileManagerFailed(e.toString()),
+        duration: const Duration(seconds: 3),
+      ));
+    }
+  }
+
+  /// 打开下载目录
+  Future<void> _openDownloadDirectory() async {
+    if (_downloadPath != null) {
+      try {
+        await OpenFileManager.open(_downloadPath!);
+        Get.showSnackbar(GetSnackBar(
+          message: S.of(context).downloadDirectoryOpened,
+          duration: const Duration(seconds: 2),
+        ));
+      } catch (e) {
+        print('打开下载目录失败: $e');
+        Get.showSnackbar(GetSnackBar(
+          message: S.of(context).openDownloadDirectoryFailed(e.toString()),
+          duration: const Duration(seconds: 3),
+        ));
+      }
+    } else {
+      Get.showSnackbar(GetSnackBar(
+        message: S.of(context).downloadDirectoryPathUnknown,
+        duration: const Duration(seconds: 2),
       ));
     }
   }
@@ -694,28 +765,35 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
   void _showFileLocation(String filePath) {
     Get.dialog(
       AlertDialog(
-        title: const Text('文件位置'),
+        title: Text(S.of(context).fileLocation),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('文件已保存到:'),
+            Text(S.of(context).fileSavedTo),
             const SizedBox(height: 8),
             SelectableText(
               filePath,
               style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(height: 16),
-            const Text(
-              '您可以使用文件管理器找到此文件，或者尝试安装相应的应用来打开它。',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+            Text(
+              S.of(context).fileLocationTip,
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
-            child: const Text('确定'),
+            child: Text(S.of(context).cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _openFileManager(filePath);
+            },
+            child: Text(S.of(context).openFileManager),
           ),
         ],
       ),
@@ -726,17 +804,17 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('下载管理'),
+        title: Text(S.of(context).downloadManager),
         bottom: TabBar(
           controller: _tabController,
           tabs: [
             Tab(
               icon: const Icon(Icons.downloading),
-              text: '进行中 (${DownloadManager.activeTasks.length})',
+              text: '${S.of(context).inProgress} (${DownloadManager.activeTasks.length})',
             ),
             Tab(
               icon: const Icon(Icons.download_done),
-              text: '已完成 (${DownloadManager.completedTasks.length + _downloadedFiles.length})',
+              text: '${S.of(context).completed} (${DownloadManager.completedTasks.length + _downloadedFiles.length})',
             ),
           ],
         ),
@@ -754,60 +832,47 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
                 case 'clear_records':
                   DownloadManager.clearCompletedTasks();
                   setState(() {});
-                  Get.showSnackbar(const GetSnackBar(
-                    message: '已清空下载记录',
-                    duration: Duration(seconds: 2),
+                  Get.showSnackbar(GetSnackBar(
+                    message: S.of(context).downloadRecordsCleared,
+                    duration: const Duration(seconds: 2),
                   ));
                   break;
                 case 'clear_all':
                   _confirmClearAll();
                   break;
                 case 'open_folder':
-                  if (_downloadPath != null) {
-                    Get.dialog(
-                      AlertDialog(
-                        title: const Text('下载目录'),
-                        content: SelectableText(_downloadPath!),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Get.back(),
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+                  _openDownloadDirectory();
                   break;
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'open_folder',
                 child: Row(
                   children: [
-                    Icon(Icons.folder_open),
-                    SizedBox(width: 8),
-                    Text('打开目录'),
+                    const Icon(Icons.folder_open),
+                    const SizedBox(width: 8),
+                    Text(S.of(context).openDirectory),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear_records',
                 child: Row(
                   children: [
-                    Icon(Icons.clear_all),
-                    SizedBox(width: 8),
-                    Text('清空记录'),
+                    const Icon(Icons.clear_all),
+                    const SizedBox(width: 8),
+                    Text(S.of(context).clearRecords),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'clear_all',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_forever, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('清空所有', style: TextStyle(color: Colors.red)),
+                    const Icon(Icons.delete_forever, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Text(S.of(context).clearAll, style: const TextStyle(color: Colors.red)),
                   ],
                 ),
               ),

@@ -309,7 +309,6 @@
       }
     }
   },
-  "downloading": "正在下载",
   "currentDownloadingFiles": "当前有 {count} 个文件在下载",
   "@currentDownloadingFiles": {
     "placeholders": {
@@ -318,7 +317,6 @@
       }
     }
   },
-  "downloadProgress": "下载进度",
   "downloadProgressDesc": "显示文件下载进度",
   "viewDownloads": "查看下载",
   "showDownloadProgressNotificationFailed": "显示下载进度通知失败: {error}",
@@ -381,5 +379,73 @@
         "type": "String"
       }
     }
-  }
+  },
+  "showInFileManager": "在文件管理器中显示",
+  "fileSize": "大小: {size}",
+  "@fileSize": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "fileTime": "时间: {time}",
+  "@fileTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "ok": "确定",
+  "openFileManager": "打开文件管理器",
+  "fileManagerOpened": "已打开文件管理器",
+  "openFileManagerFailed": "打开文件管理器失败: {error}",
+  "@openFileManagerFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadDirectoryOpened": "已打开下载目录",
+  "openDownloadDirectoryFailed": "打开下载目录失败: {error}",
+  "@openDownloadDirectoryFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadDirectoryPathUnknown": "下载目录路径未知",
+  "cannotGetDownloadDirectoryError": "无法获取下载目录",
+  "startDownloadFile": "开始下载: {filename}",
+  "@startDownloadFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadCompleteFile": "下载完成: {filename}",
+  "@downloadCompleteFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadFailedFile": "下载失败: {filename}",
+  "@downloadFailedFile": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "userCancelledDownloadError": "用户取消下载",
+  "cannotInstallApkNeedPermission": "无法安装 APK 文件，可能需要在设置中开启\"允许安装未知来源应用\"",
+  "noPermissionToInstallApkFile": "没有权限安装 APK 文件，请在设置中开启安装权限",
+  "preparingDownloadStatus": "准备下载...",
+  "downloadCancelledText": "下载已取消"
 }
