@@ -58,11 +58,7 @@ class OpenListService : Service(), OpenList.Listener {
             .sendBroadcast(Intent(ACTION_STATUS_CHANGED))
 
         if (!isRunning) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            } else
-                stopForeground(true)
-
+            // 后台服务不需要调用 stopForeground
             stopSelf()
         }
     }
@@ -71,7 +67,8 @@ class OpenListService : Service(), OpenList.Listener {
     override fun onCreate() {
         super.onCreate()
 
-        initOrUpdateNotification()
+        // 移除前台服务通知，改为后台服务
+        // initOrUpdateNotification()
 
         if (AppConfig.isWakeLockEnabled) {
             mWakeLock = powerManager.newWakeLock(
@@ -106,7 +103,8 @@ class OpenListService : Service(), OpenList.Listener {
         mWakeLock?.release()
         mWakeLock = null
 
-        stopForeground(true)
+        // 后台服务不需要调用 stopForeground
+        // stopForeground(true)
 
         LocalBroadcastManager.getInstance(this).unregisterReceiver(mReceiver)
         unregisterReceiver(mNotificationReceiver)

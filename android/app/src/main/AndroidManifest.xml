@@ -75,7 +75,6 @@
         <service
             android:name=".OpenListService"
             android:exported="true"
-            android:foregroundServiceType="dataSync"
             tools:ignore="ExportedService" />
 
         <receiver
