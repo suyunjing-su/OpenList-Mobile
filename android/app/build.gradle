@@ -4,9 +4,8 @@ plugins {
     id "kotlin-parcelize"
     id "kotlin-kapt"
     id "dev.flutter.flutter-gradle-plugin"
+    id "kotlinx-serialization"
 }
-
-apply plugin: 'kotlinx-serialization'
 
 def pro = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
@@ -122,9 +121,12 @@ androidComponents {
             def versionName = output.versionName.orNull ?: "1.0.0"
             def abi = ""
             // 简化ABI过滤器检查逻辑
-            output.filters.forEach { filter ->
-                if (filter.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI) {
-                    abi = "_${filter.identifier}"
+            if (output.filters != null && !output.filters.isEmpty()) {
+                for (filter in output.filters) {
+                    if (filter.filterType.name() == "ABI") {
+                        abi = "_${filter.identifier}"
+                        break
+                    }
                 }
             }
             output.outputFileName.set("OpenListF-v${versionName}${abi}.apk")
@@ -165,6 +167,5 @@ dependencies {
 //    implementation("androidx.room:room-ktx:$room_version")
 //    ksp("androidx.room:room-compiler:$room_version")
 //    androidTestImplementation("androidx.room:room-testing:$room_version")
-
 
 }
