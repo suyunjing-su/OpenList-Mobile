@@ -9,6 +9,8 @@ on:
       - "*.sh"
       - "release.yaml"
   #      - "sync_frp.yaml"
+  pull_request:
+    branches: ["main"]
 
   workflow_dispatch:
 
