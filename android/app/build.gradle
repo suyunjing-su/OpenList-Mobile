@@ -92,20 +92,6 @@ android {
         }
     }
 
-    android.applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            def abiName = null
-            if (output.filters != null && !output.filters.isEmpty()) {
-                abiName = output.filters.find { it.filterType == com.android.build.OutputFile.ABI }?.identifier
-            }
-            if (abiName == null) {
-                output.outputFileName = "OpenListF-v${variant.versionName}.apk"
-            } else {
-                output.outputFileName = "OpenListF-v${variant.versionName}_${abiName}.apk"
-            }
-        }
-    }
-
 //    kotlin {
 //        jvmToolchain  = 17
 //    }
@@ -125,6 +111,20 @@ android {
                 //noinspection ChromeOsAbiSupport
 //                abiFilters "arm64-v8a"
 //                abiFilters "x86"
+            }
+        }
+    }
+}
+
+// 使用新版 AGP 推荐的 androidComponents API 来自定义文件名
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            if (abi != null) {
+                output.outputFileName.set("OpenListF-v${variant.versionName}_${abi}.apk")
+            } else {
+                output.outputFileName.set("OpenListF-v${variant.versionName}.apk")
             }
         }
     }
