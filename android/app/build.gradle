@@ -120,7 +120,16 @@ androidComponents {
     onVariants(selector().all()) { variant ->
         variant.outputs.forEach { output ->
             def versionName = output.versionName.orNull ?: "1.0.0"
-            output.outputFileName.set("OpenListF-v${versionName}.apk")
+            def abi = ""
+            if (output.filters != null && !output.filters.isEmpty()) {
+                for (filter in output.filters) {
+                    if (filter.filterType.name() == "ABI") {
+                        abi = "_${filter.identifier}"
+                        break
+                    }
+                }
+            }
+            output.outputFileName.set("OpenListF-v${versionName}${abi}.apk")
         }
     }
 }
