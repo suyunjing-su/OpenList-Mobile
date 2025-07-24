@@ -85,10 +85,10 @@ android {
 
     splits {
         abi {
-            enable gradle.startParameter.taskNames.any { it.contains("Release") }
+            enable true  // 改为始终启用,而不是根据任务名判断
             reset()
             include 'armeabi-v7a', 'arm64-v8a', 'x86_64'
-            universalApk true
+            universalApk false  // 改为false避免生成通用APK
         }
     }
 
@@ -121,12 +121,10 @@ androidComponents {
         variant.outputs.forEach { output ->
             def versionName = output.versionName.orNull ?: "1.0.0"
             def abi = ""
-            if (output.filters != null && !output.filters.isEmpty()) {
-                for (filter in output.filters) {
-                    if (filter.filterType.name() == "ABI") {
-                        abi = "_${filter.identifier}"
-                        break
-                    }
+            // 简化ABI过滤器检查逻辑
+            output.filters.forEach { filter ->
+                if (filter.filterType == com.android.build.api.variant.FilterConfiguration.FilterType.ABI) {
+                    abi = "_${filter.identifier}"
                 }
             }
             output.outputFileName.set("OpenListF-v${versionName}${abi}.apk")
