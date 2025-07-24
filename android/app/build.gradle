@@ -120,10 +120,12 @@ androidComponents {
     onVariants(selector().all()) { variant ->
         variant.outputs.forEach { output ->
             def abi = null
-            for (filter in output.filters) {
-                if (filter.filterType.name() == "ABI") {
-                    abi = filter.identifier
-                    break
+            if (output.filters != null) {
+                for (filter in output.filters) {
+                    if (filter.filterType.name() == "ABI") {
+                        abi = filter.identifier
+                        break
+                    }
                 }
             }
             def suffix = abi != null ? "_${abi}" : ""
