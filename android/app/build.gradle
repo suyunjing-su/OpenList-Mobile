@@ -117,34 +117,16 @@ android {
 }
 
 import com.android.build.OutputFile
+import com.android.build.gradle.internal.api.BaseVariantOutputImpl
 
-androidComponents {
-    onVariants(selector().all()) { variant ->
-        def variantNameCap = variant.name.capitalize()
-        def copyTask = tasks.register("copy${variantNameCap}Apk", Copy) {
-            from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
-            into(layout.buildDirectory.dir("renamed-apks"))
-            rename { fileName ->
-                def abi = null
-                // 获取 ABI 分包，仅在有时才返回非空
-                variant.outputs.each { output ->
-                    def filterABI = output.getFilter(OutputFile.ABI)
-                    if (filterABI != null) { abi = filterABI }
-                }
-                def versionName = variant.versionName.get()
-                return "OpenListF-v${versionName}${abi ? "_${abi}" : ""}.apk"
-            }
-        }
-
-        project.afterEvaluate {
-            def assembleTask = tasks.named("assemble${variantNameCap}")
-            assembleTask.configure {
-                finalizedBy(copyTask)
-            }
-            copyTask.configure {
-                dependsOn assembleTask
-            }
-        }
+android.applicationVariants.all { variant ->
+    variant.outputs.each { output ->
+        def abi = output.getFilter(OutputFile.ABI)  // 对 universal APK 会返回 null
+        def versionName = variant.versionName
+        def fileName = "OpenListF-v${versionName}${abi ? "_${abi}" : ""}.apk"
+        
+        def outputImpl = output as BaseVariantOutputImpl
+        outputImpl.outputFileName = fileName
     }
 }
 
