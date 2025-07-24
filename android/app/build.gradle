@@ -94,12 +94,15 @@ android {
 
     android.applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            //noinspection GrDeprecatedAPIUsage
-            def abiName = output.getFilter(com.android.build.OutputFile.ABI)
-            if (abiName == null)
+            def abiName = null
+            if (output.filters != null && !output.filters.isEmpty()) {
+                abiName = output.filters.find { it.filterType == com.android.build.OutputFile.ABI }?.identifier
+            }
+            if (abiName == null) {
                 output.outputFileName = "OpenListF-v${variant.versionName}.apk"
-            else
+            } else {
                 output.outputFileName = "OpenListF-v${variant.versionName}_${abiName}.apk"
+            }
         }
     }
 

@@ -423,8 +423,8 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(S.of(context).fileSize(_formatFileSize(stat.size))),
-                    Text(S.of(context).fileTime(_formatDateTime(stat.modified))),
+                    Text('${S.of(context).size}: ${_formatFileSize(stat.size)}'),
+                    Text('${S.of(context).modifiedTime}: ${_formatDateTime(stat.modified)}'),
                   ],
                 ),
                 trailing: const Icon(Icons.more_vert),
@@ -722,7 +722,15 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
       String directoryPath = filePath.substring(0, filePath.lastIndexOf('/'));
       
       // 尝试打开文件管理器并定位到文件
-      await OpenFileManager.open(directoryPath);
+      await openFileManager(
+        androidConfig: AndroidConfig(
+          folderType: AndroidFolderType.other,
+          folderPath: directoryPath,
+        ),
+        iosConfig: IosConfig(
+          folderPath: directoryPath,
+        ),
+      );
       
       Get.showSnackbar(GetSnackBar(
         message: S.of(context).fileManagerOpened,
@@ -741,7 +749,15 @@ class _DownloadManagerPageState extends State<DownloadManagerPage>
   Future<void> _openDownloadDirectory() async {
     if (_downloadPath != null) {
       try {
-        await OpenFileManager.open(_downloadPath!);
+        await openFileManager(
+          androidConfig: AndroidConfig(
+            folderType: AndroidFolderType.other,
+            folderPath: _downloadPath!,
+          ),
+          iosConfig: IosConfig(
+            folderPath: _downloadPath!,
+          ),
+        );
         Get.showSnackbar(GetSnackBar(
           message: S.of(context).downloadDirectoryOpened,
           duration: const Duration(seconds: 2),
