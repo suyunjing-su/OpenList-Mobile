@@ -116,6 +116,8 @@ android {
     }
 }
 
+import com.android.build.OutputFile
+
 androidComponents {
     onVariants(selector().all()) { variant ->
         def variantNameCap = variant.name.capitalize()
@@ -123,38 +125,29 @@ androidComponents {
             from(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
             into(layout.buildDirectory.dir("renamed-apks"))
             rename { fileName ->
-                // 从文件名中提取 ABI 信息
-                def abi = ""
-                if (fileName.contains("arm64-v8a")) {
-                    abi = "_arm64-v8a"
-                } else if (fileName.contains("armeabi-v7a")) {
-                    abi = "_armeabi-v7a"
-                } else if (fileName.contains("x86_64")) {
-                    abi = "_x86_64"
-                } else if (fileName.contains("universal")) {
-                    abi = "_universal"
+                def abi = null
+                // 获取 ABI 分包，仅在有时才返回非空
+                variant.outputs.each { output ->
+                    def filterABI = output.getFilter(OutputFile.ABI)
+                    if (filterABI != null) { abi = filterABI }
                 }
-                // 如果没有特定 ABI，则为 universal APK，不添加 ABI 后缀
-                
                 def versionName = variant.versionName.get()
-                return "OpenListF-v${versionName}${abi}.apk"
+                return "OpenListF-v${versionName}${abi ? "_${abi}" : ""}.apk"
             }
         }
-        
-        // 使用 afterEvaluate 来确保任务存在后再配置依赖关系
+
         project.afterEvaluate {
-            def assembleTaskName = "assemble${variantNameCap}"
-            if (tasks.findByName(assembleTaskName)) {
-                tasks.named(assembleTaskName).configure {
-                    finalizedBy copyTask
-                }
-                copyTask.configure {
-                    dependsOn assembleTaskName
-                }
+            def assembleTask = tasks.named("assemble${variantNameCap}")
+            assembleTask.configure {
+                finalizedBy(copyTask)
+            }
+            copyTask.configure {
+                dependsOn assembleTask
             }
         }
     }
 }
+
 
 flutter {
     source '../..'
