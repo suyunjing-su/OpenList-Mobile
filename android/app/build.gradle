@@ -92,6 +92,20 @@ android {
         }
     }
 
+    // 使用更简单的方法来自定义文件名，避免兼容性问题
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            // 使用更安全的方法获取 ABI 信息
+            def abiName = output.getFilter("ABI")
+            def fileName = "OpenListF-v${variant.versionName}"
+            if (abiName != null && !abiName.isEmpty()) {
+                fileName += "_${abiName}"
+            }
+            fileName += ".apk"
+            outputFileName = fileName
+        }
+    }
+
 //    kotlin {
 //        jvmToolchain  = 17
 //    }
@@ -111,20 +125,6 @@ android {
                 //noinspection ChromeOsAbiSupport
 //                abiFilters "arm64-v8a"
 //                abiFilters "x86"
-            }
-        }
-    }
-}
-
-// 使用新版 AGP 推荐的 androidComponents API 来自定义文件名
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            def abi = output.getFilter(com.android.build.OutputFile.ABI)
-            if (abi != null) {
-                output.outputFileName.set("OpenListF-v${variant.versionName}_${abi}.apk")
-            } else {
-                output.outputFileName.set("OpenListF-v${variant.versionName}.apk")
             }
         }
     }
