@@ -125,7 +125,14 @@ class OpenListService : Service(), OpenList.Listener {
         if (isRunning) {
             // 关闭操作也放到子线程中执行，避免阻塞主线程
             mScope.launch(Dispatchers.IO) {
-                OpenList.shutdown()
+                try {
+                    OpenList.shutdown()
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Shutdown error", e)
+                    launch(Dispatchers.Main) {
+                        toast("关闭失败: ${e.message}")
+                    }
+                }
             }
         } else {
             toast(getString(R.string.starting))
@@ -133,16 +140,29 @@ class OpenListService : Service(), OpenList.Listener {
             // 在子线程中启动OpenList服务，避免阻塞主线程
             mScope.launch(Dispatchers.IO) {
                 try {
+                    // 确保在启动前进行初始化
+                    OpenList.init()
+                    // 添加延迟确保初始化完成
+                    kotlinx.coroutines.delay(100)
                     OpenList.startup()
                     // 启动完成后在主线程中更新状态
                     launch(Dispatchers.Main) {
                         notifyStatusChanged()
                     }
                 } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Startup error", e)
                     // 启动失败时重置状态
                     isRunning = false
                     launch(Dispatchers.Main) {
                         toast("启动失败: ${e.message}")
+                        notifyStatusChanged()
+                    }
+                } catch (t: Throwable) {
+                    android.util.Log.e(TAG, "Startup fatal error", t)
+                    // 处理更严重的错误（如 JNI 崩溃）
+                    isRunning = false
+                    launch(Dispatchers.Main) {
+                        toast("启动严重错误: ${t.message}")
                         notifyStatusChanged()
                     }
                 }

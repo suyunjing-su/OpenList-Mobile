@@ -94,10 +94,36 @@ object OpenList : Event, LogCallback {
     }
 
     @SuppressLint("SdCardPath")
+    @Synchronized
     fun startup() {
         Log.d(TAG, "startup: $dataDir")
-        init()
-        Openlistlib.start()
+        try {
+            // 确保数据目录存在
+            val dataDirFile = File(dataDir)
+            if (!dataDirFile.exists()) {
+                dataDirFile.mkdirs()
+                Log.d(TAG, "Created data directory: $dataDir")
+            }
+            
+            // 重新初始化以确保配置正确
+            init()
+            
+            // 检查是否已经在运行
+            if (isRunning()) {
+                Log.w(TAG, "OpenList is already running")
+                return
+            }
+            
+            Log.d(TAG, "Starting OpenList...")
+            Openlistlib.start()
+            Log.d(TAG, "OpenList started successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start OpenList", e)
+            throw e
+        } catch (t: Throwable) {
+            Log.e(TAG, "Fatal error starting OpenList", t)
+            throw RuntimeException("Fatal error starting OpenList", t)
+        }
     }
 
     fun getHttpPort(): Int {
