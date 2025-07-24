@@ -116,17 +116,23 @@ android {
     }
 }
 
-import com.android.build.OutputFile
-import com.android.build.gradle.internal.api.BaseVariantOutputImpl
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        variant.outputs.forEach { output ->
+            def abi = null
+            for (filter in output.filters) {
+                if (filter.filterType.name() == "ABI") {
+                    abi = filter.identifier
+                    break
+                }
+            }
+            def suffix = abi != null ? "_${abi}" : ""
 
-android.applicationVariants.all { variant ->
-    variant.outputs.each { output ->
-        def abi = output.getFilter(OutputFile.ABI)  // 对 universal APK 会返回 null
-        def versionName = variant.versionName
-        def fileName = "OpenListF-v${versionName}${abi ? "_${abi}" : ""}.apk"
-        
-        def outputImpl = output as BaseVariantOutputImpl
-        outputImpl.outputFileName = fileName
+            // 这里用 output 的 versionName，兼容性更好
+            def versionName = output.versionName.orNull ?: "1.0.0"
+
+            output.outputFileName.set("OpenListF-v${versionName}${suffix}.apk")
+        }
     }
 }
 
