@@ -3,6 +3,7 @@ import 'package:openlist_flutter/pages/openlist/about_dialog.dart';
 import 'package:openlist_flutter/pages/openlist/pwd_edit_dialog.dart';
 import 'package:openlist_flutter/pages/app_update_dialog.dart';
 import 'package:openlist_flutter/widgets/switch_floating_action_button.dart';
+import 'package:openlist_flutter/utils/service_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -77,10 +78,15 @@ class OpenListScreen extends StatelessWidget {
         floatingActionButton: Obx(
           () => SwitchFloatingButton(
               isSwitch: ui.isSwitch.value,
-              onSwitchChange: (s) {
+              onSwitchChange: (s) async {
                 ui.clearLog();
-                ui.isSwitch.value = s;
-                Android().startService();
+                if (s) {
+                  // 启动服务
+                  await ServiceManager.instance.startService();
+                } else {
+                  // 停止服务
+                  await ServiceManager.instance.stopService();
+                }
               }),
         ),
         body: Obx(() => LogListView(logs: ui.logs.value)));
@@ -122,10 +128,26 @@ class OpenListController extends GetxController {
 
   @override
   void onInit() {
+    // 设置日志接收器，但状态变化只通过ServiceManager处理
     Event.setup(MyEventReceiver(
-        (isRunning) => isSwitch.value = isRunning, (log) => addLog(log)));
+        (isRunning) {
+          // 不在这里更新状态，避免冲突
+          print('Event receiver status: $isRunning');
+        }, 
+        (log) => addLog(log)));
+    
     Android().getOpenListVersion().then((value) => openlistVersion.value = value);
-    Android().isRunning().then((value) => isSwitch.value = value);
+    
+    // 获取初始状态
+    ServiceManager.instance.checkServiceStatus().then((isRunning) {
+      isSwitch.value = isRunning;
+    });
+
+    // 只监听ServiceManager的状态变化
+    ServiceManager.instance.serviceStatusStream.listen((isRunning) {
+      print('ServiceManager status changed: $isRunning');
+      isSwitch.value = isRunning;
+    });
 
     super.onInit();
   }
