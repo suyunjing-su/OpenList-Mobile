@@ -28,7 +28,7 @@ jobs:
           touch ${{ env.VERSION_FILE }}
           ./check_openlist.sh
 
-      - name: Shell
+      - name: Change OpenList Version
         run: |
           echo "openlist_version=${{ env.openlist_version }}"
           echo "openlist_update=${{ env.openlist_update }}" 
