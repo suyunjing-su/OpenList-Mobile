@@ -57,7 +57,7 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m16(filename) => "Download failed: ${filename}";
 
-  static String m17(count) => "Download Manager (${count})";
+  static String m17(count) => "Download (${count})";
 
   static String m18(progress) => "Download progress: ${progress}%";
 
@@ -236,7 +236,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "downloadFailed": MessageLookupByLibrary.simpleMessage("Download failed"),
     "downloadFailedFile": m15,
     "downloadFailedWithError": m16,
-    "downloadManager": MessageLookupByLibrary.simpleMessage("Download Manager"),
+    "downloadManager": MessageLookupByLibrary.simpleMessage("Download"),
     "downloadManagerWithCount": m17,
     "downloadProgress": m18,
     "downloadProgressDesc": MessageLookupByLibrary.simpleMessage(
@@ -249,6 +249,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Download this file？",
     ),
     "downloading": MessageLookupByLibrary.simpleMessage("Downloading"),
+    "english": MessageLookupByLibrary.simpleMessage("English"),
     "failed": MessageLookupByLibrary.simpleMessage("Failed"),
     "fileDeleted": MessageLookupByLibrary.simpleMessage("File deleted"),
     "fileDeletedLog": m19,
@@ -268,6 +269,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "fileSavedTo": MessageLookupByLibrary.simpleMessage("File saved to:"),
     "fileSize": m20,
     "fileTime": m21,
+    "followSystem": MessageLookupByLibrary.simpleMessage("Follow System"),
     "general": MessageLookupByLibrary.simpleMessage("General"),
     "getDownloadDirectoryFailed": m22,
     "getDownloadFileListFailed": m23,
@@ -297,6 +299,13 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "jumpToOtherApp": MessageLookupByLibrary.simpleMessage(
       "Jump to other app？",
+    ),
+    "language": MessageLookupByLibrary.simpleMessage("Language"),
+    "languageSettings": MessageLookupByLibrary.simpleMessage(
+      "Language Settings",
+    ),
+    "languageSettingsDesc": MessageLookupByLibrary.simpleMessage(
+      "Select app display language",
     ),
     "loadDownloadFilesFailed": MessageLookupByLibrary.simpleMessage(
       "Failed to load download files",
@@ -392,6 +401,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "silentJumpAppDesc": MessageLookupByLibrary.simpleMessage(
       "Jump to other app without prompt",
     ),
+    "simplifiedChinese": MessageLookupByLibrary.simpleMessage("简体中文"),
     "size": MessageLookupByLibrary.simpleMessage("Size"),
     "startDownload": m37,
     "startDownloadFile": m38,
