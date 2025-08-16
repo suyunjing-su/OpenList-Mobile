@@ -62,7 +62,6 @@ class OpenListService : Service(), OpenList.Listener {
     private val mReceiver = MyReceiver()
     private var mWakeLock: PowerManager.WakeLock? = null
     private var mLocalAddress: String = ""
-    private var networkMonitor: com.openlist.mobile.utils.NetworkMonitor? = null
 
     override fun onBind(p0: Intent?): IBinder? = null
 
@@ -135,20 +134,6 @@ class OpenListService : Service(), OpenList.Listener {
 
         // 添加OpenList监听器
         OpenList.addListener(this)
-
-        // 检查是否被用户手动停止
-        if (!AppConfig.isManuallyStoppedByUser) {
-            // 启动保活服务
-            startKeepAliveService()
-
-            // 启动网络监听
-            startNetworkMonitoring()
-
-            // 启动心跳检测
-            startHeartbeat()
-        } else {
-            Log.d(TAG, "Service was manually stopped by user, skipping keep alive initialization")
-        }
     }
 
     @Suppress("DEPRECATION")
@@ -183,16 +168,8 @@ class OpenListService : Service(), OpenList.Listener {
             Log.e(TAG, "Failed to unregister receivers", e)
         }
 
-        // 停止网络监听
-        stopNetworkMonitoring()
-
         // 移除OpenList监听器
         OpenList.removeListener(this)
-
-        // 尝试重启服务（保活机制）
-        if (isRunning && AppConfig.isStartAtBootEnabled && !AppConfig.isManuallyStoppedByUser) {
-            restartService()
-        }
     }
 
     override fun onShutdown(type: String) {
@@ -245,6 +222,7 @@ class OpenListService : Service(), OpenList.Listener {
                     OpenList.init()
                     // 添加延迟确保初始化完成
                     delay(100)
+                    Log.d(TAG, "Manual starting OpenList...")
                     OpenList.startup()
                     
                     // 启动完成后在主线程中更新状态
@@ -252,8 +230,9 @@ class OpenListService : Service(), OpenList.Listener {
                         notifyStatusChanged()
                         toast("OpenList 启动成功")
                     }
+                    Log.d(TAG, "Manual start completed successfully")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Startup error", e)
+                    Log.e(TAG, "Manual startup error", e)
                     // 启动失败时重置状态
                     isRunning = false
                     launch(Dispatchers.Main) {
@@ -261,7 +240,7 @@ class OpenListService : Service(), OpenList.Listener {
                         notifyStatusChanged()
                     }
                 } catch (t: Throwable) {
-                    Log.e(TAG, "Startup fatal error", t)
+                    Log.e(TAG, "Manual startup fatal error", t)
                     // 处理更严重的错误（如 JNI 崩溃）
                     isRunning = false
                     launch(Dispatchers.Main) {
@@ -275,114 +254,15 @@ class OpenListService : Service(), OpenList.Listener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand called")
-        
-        // 检查是否被用户手动停止
-        if (AppConfig.isManuallyStoppedByUser) {
-            Log.d(TAG, "Service was manually stopped by user, not auto-starting OpenList")
-            return START_STICKY
-        }
-        
-        // 如果还没有启动，则启动OpenList
-        if (!isRunning) {
+
+        // 如果OpenList后端未运行，则启动它
+        if (!isRunning && !OpenList.isRunning()) {
+            Log.d(TAG, "Starting OpenList backend from onStartCommand")
             startOrShutdown()
         }
 
-        // 返回 START_STICKY 确保服务被杀死后会重启
+        // 返回 START_STICKY 确保服务被杀死后会重启（仅保持前台服务）
         return START_STICKY
-    }
-
-    /**
-     * 启动保活服务
-     */
-    private fun startKeepAliveService() {
-        try {
-            val intent = Intent(this, KeepAliveService::class.java)
-            startService(intent)
-            Log.d(TAG, "Keep alive service started")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start keep alive service", e)
-        }
-    }
-
-    /**
-     * 启动网络监听
-     */
-    private fun startNetworkMonitoring() {
-        try {
-            networkMonitor = com.openlist.mobile.utils.NetworkMonitor(this)
-            networkMonitor?.startMonitoring()
-            Log.d(TAG, "Network monitoring started")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start network monitoring", e)
-        }
-    }
-
-    /**
-     * 停止网络监听
-     */
-    private fun stopNetworkMonitoring() {
-        try {
-            networkMonitor?.stopMonitoring()
-            networkMonitor = null
-            Log.d(TAG, "Network monitoring stopped")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop network monitoring", e)
-        }
-    }
-
-    /**
-     * 启动心跳检测
-     */
-    private fun startHeartbeat() {
-        mScope.launch {
-            while (isActive) {
-                try {
-                    // 每30秒检查一次服务状态
-                    delay(30000)
-                    
-                    // 检查是否被用户手动停止
-                    if (AppConfig.isManuallyStoppedByUser) {
-                        Log.d(TAG, "Service was manually stopped by user, skipping heartbeat restart")
-                        continue
-                    }
-                    
-                    if (isRunning && !OpenList.isRunning()) {
-                        Log.w(TAG, "OpenList stopped unexpectedly, restarting...")
-                        // 重新启动OpenList
-                        launch(Dispatchers.IO) {
-                            try {
-                                OpenList.startup()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Failed to restart OpenList", e)
-                                isRunning = false
-                                launch(Dispatchers.Main) {
-                                    notifyStatusChanged()
-                                }
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Heartbeat error", e)
-                }
-            }
-        }
-    }
-
-    /**
-     * 重启服务
-     */
-    private fun restartService() {
-        try {
-            val intent = Intent(this, OpenListService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-            Log.d(TAG, "Service restart command sent")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to restart service", e)
-        }
     }
 
     inner class MyReceiver : BroadcastReceiver() {
