@@ -117,61 +117,6 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.32.7'
-
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          # Keep tool cache to preserve Java, Go, Flutter installations
-          tool-cache: false
-          # Keep Android SDK as we need it for building
-          android: false
-          # Remove .NET runtime to save space
-          dotnet: true
-          # Remove Haskell runtime to save space
-          haskell: true  
-          # Remove large packages like Chrome, Firefox, etc.
-          large-packages: true
-          # Remove Docker images to save space
-          docker-images: true
-          # Remove swap storage to save space
-          swap-storage: true
-
-      - name: Additional Cleanup (Preserve Java)
-        run: |
-          echo "Before additional cleanup:"
-          df -h
-          # Remove specific large directories while preserving Java
-          sudo rm -rf /opt/hostedtoolcache/Python* 2>/dev/null || true
-          sudo rm -rf /opt/hostedtoolcache/node* 2>/dev/null || true
-          sudo rm -rf /opt/hostedtoolcache/Ruby* 2>/dev/null || true
-          sudo rm -rf /opt/hostedtoolcache/PyPy* 2>/dev/null || true
-          sudo rm -rf /opt/hostedtoolcache/CodeQL* 2>/dev/null || true
-          sudo rm -rf /imagegeneration 2>/dev/null || true
-          sudo rm -rf /opt/az 2>/dev/null || true
-          # Clean APT cache
-          sudo apt-get clean || true
-          echo "After additional cleanup:"
-          df -h
-      
-      - name: Verify Flutter and Android environment
-        run: |
-          echo "=== Flutter Environment ==="
-          flutter --version
-          flutter doctor -v
-          echo "=== Android Environment ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT" 
-          echo "JAVA_HOME: $JAVA_HOME"
-          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools not found"
-          echo "=== Disk Space ==="
-          df -h
-      
-      - name: Debug - Check build directory
-        run: |
-          echo "Checking build directory structure..."
-          ls -la build/ || echo "build directory not found"
-          ls -la build/app/ || echo "build/app directory not found"
-          ls -la build/app/outputs/ || echo "build/app/outputs directory not found"
       
       - name: Build Release APK
         if: github.event_name != 'pull_request'
@@ -184,16 +129,6 @@ jobs:
         env:
           BUILD_VERSION_NAME: ${{ needs.version.outputs.version_name }}
         run: flutter build apk --split-per-abi --debug --target-platform android-arm,android-arm64,android-x64
-        
-      - name: Debug - Check APK files
-        run: |
-          echo "Checking for APK files..."
-          find build/ -name "*.apk" -type f || echo "No APK files found"
-          ls -la build/app/outputs/flutter-apk/ || echo "Flutter APK directory not found"
-          ls -la build/app/outputs/apk/release/ || echo "Release directory not found"
-          ls -la build/app/outputs/apk/debug/ || echo "Debug directory not found"
-          echo "Expected architectures: ARM64 (arm64-v8a), ARM (armeabi-v7a), and x86_64"
-          ls -la build/app/outputs/apk/debug/ || echo "Debug directory not found"
 
       - name: Upload missing_rules.txt
         if: failure()
