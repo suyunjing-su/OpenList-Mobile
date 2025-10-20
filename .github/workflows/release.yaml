@@ -1,11 +1,6 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - "main"
-    paths:
-      - "CHANGELOG.md"
   workflow_dispatch:
 
 permissions:
@@ -187,6 +182,51 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Prepare changelog generation
+        id: prepare_changelog
+        run: |
+          # Remove existing tag `rolling`, since `rolling` should always point to the latest commit
+          # This is necessary to avoid conflicts with the changelog generation
+          git tag -d rolling 2>/dev/null || true
+
+          # Temporarily remove all pre-release tags (tags containing '-' / '+')
+          # This prevents them from interfering with changelog generation
+          PRE_RELEASE_TAGS=$(git tag -l | grep -E "(-|\+)" || true)
+          if [ -n "$PRE_RELEASE_TAGS" ]; then
+            echo "Temporarily removing pre-release tags for clean changelog generation"
+            echo "$PRE_RELEASE_TAGS" | xargs -r git tag -d
+          fi
+
+      - name: Generate changelog
+        id: generate_changelog
+        run: |
+          npx changelogithub --output ${{ github.workspace }}/GENERATED_CHANGELOG.txt || echo "" > ${{ github.workspace }}/GENERATED_CHANGELOG.txt
+
+      - name: Create final changelog
+        id: create_changelog
+        run: |
+          # Create the final changelog with OpenList sync info at the top
+          echo "[Auto Sync OpenList] ${{ needs.version.outputs.openlist_version }}" > ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "**OpenList Backend:** ${{ needs.version.outputs.openlist_version }} (${{ needs.version.outputs.openlist_git_commit }})" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "**OpenList Frontend:** ${{ needs.version.outputs.openlist_web_version }}" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "**Built at:** ${{ needs.version.outputs.openlist_built_at }}" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "---" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          echo "" >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          
+          # Append auto-generated changelog
+          if [ -s "${{ github.workspace }}/GENERATED_CHANGELOG.txt" ]; then
+            cat ${{ github.workspace }}/GENERATED_CHANGELOG.txt >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          else
+            echo "No changes in this release." >> ${{ github.workspace }}/FINAL_CHANGELOG.txt
+          fi
+
       - name: Download Android artifacts
         uses: actions/download-artifact@v4
         with:
@@ -203,7 +243,7 @@ jobs:
         with:
           name: ${{ needs.version.outputs.version_name }}
           tag_name: ${{ needs.version.outputs.version_name }}
-          body_path: ${{ github.workspace }}/CHANGELOG.md
+          body_path: ${{ github.workspace }}/FINAL_CHANGELOG.txt
           draft: false
           prerelease: false
           files: release_files/*
