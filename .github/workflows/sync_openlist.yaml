@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0 5,17 * * *" # 每日5点和17点执行
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build OpenList libraries'
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - "master"
@@ -57,7 +63,7 @@ jobs:
 
   build_openlist_libraries:
     needs: [check_and_update]
-    if: needs.check_and_update.outputs.openlist_update == '1'
+    if: needs.check_and_update.outputs.openlist_update == '1' || inputs.force_build == true
     uses: ./.github/workflows/build_openlist.yaml
 
   trigger_release:
