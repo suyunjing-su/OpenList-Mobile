@@ -44,7 +44,6 @@ jobs:
       - name: Update Version Files
         if: env.openlist_update == '1'
         run: |
-          echo -e "[自动同步OpenList] ${{ env.openlist_version }}\n\n[Auto Sync OpenList] ${{ env.openlist_version }}" > $GITHUB_WORKSPACE/CHANGELOG.md
           echo -e "${{ env.openlist_version }}" > ${{ env.VERSION_FILE }}
           
           chmod +x $GITHUB_WORKSPACE/.github/scripts/update_pubspec_version.sh
