@@ -10,6 +10,7 @@
 .svn/
 migrate_working_dir/
 docs/
+.github/prompts/
 
 # IntelliJ related
 *.iml
