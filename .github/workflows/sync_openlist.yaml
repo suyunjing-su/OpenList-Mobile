@@ -81,7 +81,6 @@ jobs:
     steps:
       - name: Trigger Release Workflow
         run: |
-          echo "OpenList libraries built successfully, triggering release workflow..."
-          gh workflow run release.yaml -R OpenListTeam/OpenList-Mobile
+          gh workflow run release.yaml -R ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
