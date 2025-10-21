@@ -44,8 +44,6 @@ jobs:
         run: |
           echo "openlist_version=${{ env.openlist_version }}" >> $GITHUB_OUTPUT
           echo "openlist_update=${{ env.openlist_update }}" >> $GITHUB_OUTPUT
-          echo "OpenList Version: ${{ env.openlist_version }}"
-          echo "Update Required: ${{ env.openlist_update }}"
 
       - name: Update Version Files
         if: env.openlist_update == '1'
