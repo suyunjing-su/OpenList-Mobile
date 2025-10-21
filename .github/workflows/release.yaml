@@ -28,7 +28,6 @@ jobs:
           TIMESTAMP=$(date +%y%m%d%H)
           VERSION_NAME="${BASE_VERSION}.${TIMESTAMP}"
           echo "version_name=${VERSION_NAME}" >> $GITHUB_OUTPUT
-          echo "Generated version: ${VERSION_NAME}"
 
       - name: Download OpenList Source Code
         run: |
@@ -60,11 +59,6 @@ jobs:
           echo "openlist_git_commit=${OPENLIST_GIT_COMMIT}" >> $GITHUB_OUTPUT
           echo "openlist_web_version=${OPENLIST_WEB_VERSION}" >> $GITHUB_OUTPUT
           echo "openlist_built_at=${OPENLIST_BUILT_AT}" >> $GITHUB_OUTPUT
-          
-          echo "OpenList Backend Version: ${OPENLIST_VERSION}"
-          echo "OpenList Git Commit: ${OPENLIST_GIT_COMMIT}"
-          echo "OpenList Web Version: ${OPENLIST_WEB_VERSION}"
-          echo "Built At: ${OPENLIST_BUILT_AT}"
 
   android:
     needs: [version]
@@ -190,15 +184,9 @@ jobs:
       - name: Prepare changelog generation
         id: prepare_changelog
         run: |
-          # Remove existing tag `rolling`, since `rolling` should always point to the latest commit
-          # This is necessary to avoid conflicts with the changelog generation
           git tag -d rolling 2>/dev/null || true
-
-          # Temporarily remove all pre-release tags (tags containing '-' / '+')
-          # This prevents them from interfering with changelog generation
           PRE_RELEASE_TAGS=$(git tag -l | grep -E "(-|\+)" || true)
           if [ -n "$PRE_RELEASE_TAGS" ]; then
-            echo "Temporarily removing pre-release tags for clean changelog generation"
             echo "$PRE_RELEASE_TAGS" | xargs -r git tag -d
           fi
 
