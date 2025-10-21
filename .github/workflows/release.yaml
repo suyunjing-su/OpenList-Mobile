@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   version:
+    name: Get OpenList Version Information
     runs-on: ubuntu-latest
     outputs:
       version_name: ${{ steps.generate.outputs.version_name }}
@@ -61,6 +62,7 @@ jobs:
           echo "openlist_built_at=${OPENLIST_BUILT_AT}" >> $GITHUB_OUTPUT
 
   android:
+    name: Build OpenList Android APK
     needs: [version]
     runs-on: ubuntu-latest
     env:
@@ -121,6 +123,7 @@ jobs:
           path: "${{ env.output }}/*.apk"
 
   # ios:
+  #   name: Build OpenList iOS App
   #   needs: [version]
   #   runs-on: macos-latest
   #   env:
@@ -164,6 +167,7 @@ jobs:
   #         path: "${{ env.output }}/OpenList-Mobile.ipa"
 
   release:
+    name: Create GitHub Release
     needs: [version, android] # Add ios when iOS build is enabled: [version, android, ios]
     runs-on: ubuntu-latest
     steps:

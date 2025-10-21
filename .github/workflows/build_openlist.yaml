@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   version:
+    name: Get OpenList Version Information
     runs-on: ubuntu-latest
     outputs:
       openlist_version: ${{ steps.openlist_version.outputs.openlist_version }}
@@ -43,6 +44,7 @@ jobs:
           echo "openlist_built_at=${OPENLIST_BUILT_AT}" >> $GITHUB_OUTPUT
 
   build_android:
+    name: Build OpenList Android AAR
     needs: [version]
     runs-on: ubuntu-latest
     steps:
@@ -96,6 +98,7 @@ jobs:
           retention-days: 50
 
   build_ios:
+    name: Build OpenList iOS Framework
     needs: [version]
     runs-on: macos-latest
     steps:

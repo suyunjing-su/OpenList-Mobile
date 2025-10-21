@@ -1,4 +1,4 @@
-name: Check OpenList Version
+name: Check Updates
 
 on:
   schedule:
@@ -22,6 +22,7 @@ permissions:
 
 jobs:
   check_and_update:
+    name: Check for version updates
     runs-on: ubuntu-latest
     outputs:
       openlist_update: ${{ steps.set_output.outputs.openlist_update }}
@@ -70,11 +71,13 @@ jobs:
           git push
 
   build_openlist_libraries:
+    name: Build OpenList Libraries
     needs: [check_and_update]
     if: needs.check_and_update.outputs.openlist_update == '1' || inputs.force_build == true
     uses: ./.github/workflows/build_openlist.yaml
 
   trigger_release:
+    name: Trigger Release Workflow
     needs: [check_and_update, build_openlist_libraries]
     if: needs.check_and_update.outputs.openlist_update == '1' && ( success() || failure() )
     runs-on: ubuntu-latest
